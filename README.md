@@ -30,12 +30,48 @@ A terminal user interface for searching and watching YouTube videos using yt-dlp
   sudo pacman -S mpv
   ```
 
+### Dependencies Installation
+
+Install all dependencies at once:
+
+```bash
+# Ubuntu/Debian
+sudo apt install mpv
+pip install yt-dlp
+
+# macOS
+brew install mpv yt-dlp
+
+# Arch Linux
+sudo pacman -S mpv yt-dlp
+```
+
 ## Installation
+
+### Quick Install (Recommended)
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/gophertube.git
-   cd gophertube
+   git clone https://github.com/KrishnaSSH/GopherTube.git
+   cd GopherTube
+   ```
+
+2. Install system-wide:
+   ```bash
+   make install
+   ```
+
+3. Run from anywhere:
+   ```bash
+   gophertube
+   ```
+
+### Manual Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/KrishnaSSH/GopherTube.git
+   cd GopherTube
    ```
 
 2. Build the application:
@@ -43,7 +79,17 @@ A terminal user interface for searching and watching YouTube videos using yt-dlp
    go build -o gophertube
    ```
 
-3. Run the application:
+3. Install binary (optional):
+   ```bash
+   sudo cp gophertube /usr/local/bin/
+   ```
+
+4. Install man page (optional):
+   ```bash
+   make install-man
+   ```
+
+5. Run the application:
    ```bash
    ./gophertube
    ```
@@ -116,10 +162,10 @@ gophertube/
 go build -o gophertube
 ```
 
-### Installing Man Page
+### Installing
 
 ```bash
-make install-man
+make install
 ```
 
 ### Code Style
