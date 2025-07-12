@@ -1,14 +1,14 @@
 package interfaces
 
 import (
-	"gophertube/internal/components"
+	"gophertube/internal/types"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // VideoService defines the interface for video operations
 type VideoService interface {
-	SearchVideos(query string, maxResults int) ([]components.Video, error)
+	SearchVideos(query string, maxResults int) ([]types.Video, error)
 	GetVideoInfo(videoURL string) (string, error)
 }
 
@@ -33,4 +33,3 @@ type UIComponent interface {
 	View() string
 	SetSize(width, height int)
 }
- 
