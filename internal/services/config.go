@@ -12,7 +12,6 @@ type Config struct {
 	YTDlpPath    string
 	VideoQuality string
 	DownloadPath string
-	InvidiousURL string
 	SearchLimit  int
 }
 
@@ -22,7 +21,6 @@ func NewConfig() *Config {
 		YTDlpPath:    "yt-dlp",
 		VideoQuality: "best[height<=1080]/best",
 		DownloadPath: getDefaultDownloadPath(),
-		InvidiousURL: "https://yewtu.be",
 		SearchLimit:  8,
 	}
 
@@ -44,9 +42,6 @@ func NewConfig() *Config {
 		}
 		if downloadPath := viper.GetString("download_path"); downloadPath != "" {
 			config.DownloadPath = downloadPath
-		}
-		if invidiousURL := viper.GetString("invidious_url"); invidiousURL != "" {
-			config.InvidiousURL = invidiousURL
 		}
 		if searchLimit := viper.GetInt("search_limit"); searchLimit > 0 {
 			config.SearchLimit = searchLimit
@@ -71,10 +66,6 @@ func (c *Config) GetVideoQuality() string {
 
 func (c *Config) GetDownloadPath() string {
 	return c.DownloadPath
-}
-
-func (c *Config) GetInvidiousURL() string {
-	return c.InvidiousURL
 }
 
 func (c *Config) GetSearchLimit() int {

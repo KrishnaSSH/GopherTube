@@ -166,16 +166,15 @@ func (a *App) View() string {
 
 	statusBar := a.statusBar.View()
 	if statusBar != "" {
-		return lipgloss.JoinVertical(lipgloss.Left, view, statusBar)
+		return lipgloss.NewStyle().Padding(2, 4).Render(lipgloss.JoinVertical(lipgloss.Left, view, statusBar))
 	}
-	return view
+	return lipgloss.NewStyle().Padding(2, 4).Render(view)
 }
 
 func (a *App) updateLayout(width, height int) {
-	// Use responsive layout that adapts to terminal size
-	a.searchComponent.SetSize(width, height)
-	a.videoList.SetSize(width, height)
-	a.statusBar.SetSize(width, height)
+	a.searchComponent.SetSize(width, height-3) // Reserve space for status bar
+	a.videoList.SetSize(width, height-3)
+	a.statusBar.SetSize(width, 3)
 }
 
 func (a *App) playVideo(video types.Video) tea.Cmd {
@@ -195,7 +194,7 @@ func (a *App) loadMoreVideos() tea.Cmd {
 			return components.ErrorMsg{Error: "No search query available"}
 		}
 
-		// Get more videos using Invidious
+		// Get more videos using yt-dlp
 		videos, err := a.searchComponent.SearchWithQuery(query)
 		if err != nil {
 			return components.ErrorMsg{Error: err.Error()}

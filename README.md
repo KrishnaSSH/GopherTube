@@ -14,7 +14,7 @@
 [![PRs](https://img.shields.io/github/issues-pr/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/pulls)
 [![Stars](https://img.shields.io/github/stars/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/stargazers)
 
-A modern terminal user interface for searching and watching YouTube videos with blazing-fast performance using Invidious API and mpv.
+A modern terminal user interface for searching and watching YouTube videos with robust performance using yt-dlp and mpv.
 
 [![GopherTube CLI](https://img.shields.io/badge/GopherTube-CLI-00ADD8?style=for-the-badge&logo=terminal&logoColor=white)](https://github.com/KrishnaSSH/GopherTube)
 
@@ -22,11 +22,11 @@ A modern terminal user interface for searching and watching YouTube videos with 
 
 ## Overview
 
-GopherTube is a high-performance terminal-based YouTube client that combines the speed of Invidious search with the reliability of yt-dlp for video playback. Built with Go and Bubble Tea, it provides a smooth, responsive experience for browsing and watching YouTube content directly from your terminal.
+GopherTube is a high-performance terminal-based YouTube client that uses yt-dlp for both searching and playback. Built with Go and Bubble Tea, it provides a smooth, responsive experience for browsing and watching YouTube content directly from your terminal.
 
 ## Key Features
 
-- **Lightning-fast search** using Invidious API with curl and jq
+- **Robust YouTube search** using yt-dlp
 - **Seamless video playback** with mpv media player
 - **Responsive terminal UI** with Swiss design principles
 - **Keyboard-driven navigation** for efficient browsing
@@ -36,7 +36,7 @@ GopherTube is a high-performance terminal-based YouTube client that combines the
 
 ## Performance Highlights
 
-- **Sub-second search results** via Invidious API
+- **Reliable search results** via yt-dlp
 - **Optimized video loading** with intelligent format selection
 - **Memory-efficient caching** system
 - **Timeout management** for reliable operation
@@ -62,23 +62,7 @@ brew install mpv
 sudo pacman -S mpv
 ```
 
-[![curl](https://img.shields.io/badge/curl-HTTP%20Client-blue?style=flat-square)](https://curl.se/) **curl** - HTTP client (usually pre-installed)
-
-[![jq](https://img.shields.io/badge/jq-JSON%20Processor-orange?style=flat-square)](https://stedolan.github.io/jq/) **jq** - JSON processor
-```bash
-# Ubuntu/Debian
-sudo apt install jq
-
-# macOS
-brew install jq
-
-# Arch Linux
-sudo pacman -S jq
-```
-
-### Optional Dependencies
-
-[![yt-dlp](https://img.shields.io/badge/yt--dlp-YouTube%20Downloader-red?style=flat-square)](https://github.com/yt-dlp/yt-dlp) **yt-dlp** - For direct video downloads
+[![yt-dlp](https://img.shields.io/badge/yt--dlp-YouTube%20Downloader-red?style=flat-square)](https://github.com/yt-dlp/yt-dlp) **yt-dlp** - For search and playback
 ```bash
 pip install yt-dlp
 ```
@@ -87,95 +71,15 @@ pip install yt-dlp
 
 ```bash
 # Ubuntu/Debian
-sudo apt install mpv jq
+sudo apt install mpv
 pip install yt-dlp
 
 # macOS
-brew install mpv jq yt-dlp
+brew install mpv yt-dlp
 
 # Arch Linux
-sudo pacman -S mpv jq yt-dlp
+sudo pacman -S mpv yt-dlp
 ```
-
----
-
-## Installation
-
-[![Install](https://img.shields.io/badge/Install-Ready-brightgreen?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube)
-
-### Quick Install (Recommended)
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/KrishnaSSH/GopherTube.git
-   cd GopherTube
-   ```
-
-2. **Install system-wide:**
-   ```bash
-   make install
-   ```
-
-3. **Run from anywhere:**
-   ```bash
-   gophertube
-   ```
-
-### Manual Installation
-
-1. **Clone and build:**
-   ```bash
-   git clone https://github.com/KrishnaSSH/GopherTube.git
-   cd GopherTube
-   go build -o gophertube
-   ```
-
-2. **Install binary (optional):**
-   ```bash
-   sudo cp gophertube /usr/local/bin/
-   ```
-
-3. **Install man page (optional):**
-   ```bash
-   make install-man
-   ```
-
-4. **Run the application:**
-   ```bash
-   ./gophertube
-   ```
-
----
-
-## Usage
-
-[![Usage](https://img.shields.io/badge/Usage-Guide-blue?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube)
-
-### Navigation Controls
-
-| Key | Action |
-|-----|--------|
-| **Tab** | Load more videos (when viewing results) |
-| **Enter** | Execute search or play selected video |
-| **Esc** | Go back to search view |
-| **Ctrl+C** | Quit the application |
-| **↑/↓** | Navigate through videos |
-| **g** | Go to first video |
-| **G** | Go to last video |
-
-### Search Interface
-
-- Type your search query in the search input
-- Press **Enter** to initiate search
-- Results appear instantly in the video list
-- Use **Tab** to load additional results
-
-### Video Playback
-
-- Select a video and press **Enter** to play
-- Videos open directly in mpv player
-- Full mpv controls available during playback
-- Automatic quality selection for optimal performance
 
 ---
 
@@ -186,22 +90,20 @@ sudo pacman -S mpv jq yt-dlp
 Create a configuration file at `~/.config/gophertube/gophertube.yaml`:
 
 ```yaml
-# Media player settings
+# Path to mpv executable
 mpv_path: "mpv"
-video_quality: "best"
 
-# Invidious API settings
-invidious_instance: "https://invidious.projectsegfau.lt"
-search_timeout: 10
-max_search_results: 20
-
-# Download settings (optional)
+# Path to yt-dlp executable
 ytdlp_path: "yt-dlp"
+
+# Default video quality for downloads
+video_quality: "best[height<=1080]/best"
+
+# Download directory for videos
 download_path: "~/Videos/gophertube"
 
-# Performance settings
-cache_enabled: true
-cache_duration: 300
+# Number of search results to fetch
+search_limit: 8
 ```
 
 ### Configuration Options
@@ -209,14 +111,10 @@ cache_duration: 300
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `mpv_path` | Path to mpv executable | `mpv` |
-| `video_quality` | Preferred video quality | `best` |
-| `invidious_instance` | Invidious API endpoint | `https://invidious.projectsegfau.lt` |
-| `search_timeout` | Search timeout in seconds | `10` |
-| `max_search_results` | Maximum results per search | `20` |
-| `ytdlp_path` | Path to yt-dlp (optional) | `yt-dlp` |
+| `video_quality` | Preferred video quality | `best[height<=1080]/best` |
+| `ytdlp_path` | Path to yt-dlp | `yt-dlp` |
 | `download_path` | Download directory | `~/Videos/gophertube` |
-| `cache_enabled` | Enable search caching | `true` |
-| `cache_duration` | Cache duration in seconds | `300` |
+| `search_limit` | Maximum results per search | `8` |
 
 ---
 
@@ -251,8 +149,7 @@ GopherTube/
     │
     ├── services/                # Business logic services
     │   ├── config.go            # Configuration management
-    │   ├── invidious.go         # Invidious API integration
-    │   └── mpv.go              # Media player service
+    │   ├── mpv.go               # Media player service
     │
     ├── types/                   # Shared data types
     │   └── types.go             # Core data structures
@@ -340,13 +237,13 @@ This project uses modern Go development practices and frameworks:
 
 1. **"Search not working"**
    - Check your internet connection
-   - Verify curl and jq are installed
-   - Try a different Invidious instance in config
+   - Verify yt-dlp is installed and in your PATH
+   - Try running yt-dlp manually to check for errors
 
 2. **"Slow search results"**
    - Check your network connection
-   - Try a different Invidious instance
-   - Increase search timeout in config
+   - Reduce the search_limit in your config
+   - Ensure your system is not under heavy load
 
 #### Playback Issues
 
@@ -364,7 +261,7 @@ This project uses modern Go development practices and frameworks:
 #### Performance Issues
 
 1. **"High memory usage"**
-   - Disable caching in config
+   - Disable caching in config (if available)
    - Reduce max search results
    - Restart the application
 

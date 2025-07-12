@@ -6,7 +6,6 @@ import (
 
 	"gophertube/internal/constants"
 	"gophertube/internal/types"
-	"gophertube/internal/utils"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -17,7 +16,8 @@ import (
 type VideoList struct {
 	list         list.Model
 	videos       []types.Video
-	layout       *utils.ResponsiveLayout
+	width        int
+	height       int
 	selected     int
 	isLoading    bool
 	spinner      spinner.Model
@@ -37,7 +37,8 @@ func NewVideoList() *VideoList {
 	return &VideoList{
 		list:         l,
 		videos:       []types.Video{},
-		layout:       utils.NewResponsiveLayout(80, 20),
+		width:        80,
+		height:       20,
 		spinner:      s,
 		scrollOffset: 0,
 	}
@@ -61,7 +62,7 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if v.selected < len(v.videos)-1 {
 				v.selected++
 				// Auto-scroll if selection goes below visible area
-				visibleHeight := v.layout.GetContentHeight()
+				visibleHeight := v.height - 5 // Account for title, spacing, and help
 				if v.selected >= v.scrollOffset+visibleHeight {
 					v.scrollOffset = v.selected - visibleHeight + 1
 				}
@@ -80,7 +81,7 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "G":
 			v.selected = len(v.videos) - 1
 			// Scroll to show the last item
-			visibleHeight := v.layout.GetContentHeight()
+			visibleHeight := v.height - 5
 			if v.selected >= visibleHeight {
 				v.scrollOffset = v.selected - visibleHeight + 1
 			}
@@ -121,12 +122,18 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (v *VideoList) View() string {
 	if len(v.videos) == 0 {
-		return v.layout.GetContentStyle().
+		return lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
+			Align(lipgloss.Left).
+			Width(v.width).
 			Render(constants.NoVideosMessage)
 	}
 
-	title := v.layout.GetTitleStyle().Render(v.layout.GetResponsiveTitle("Results"))
+	title := lipgloss.NewStyle().
+		Bold(true).
+		Align(lipgloss.Left).
+		Width(v.width).
+		Render("Results")
 
 	var videoItems []string
 	for i, video := range v.videos {
@@ -134,7 +141,7 @@ func (v *VideoList) View() string {
 	}
 
 	// Calculate visible area
-	visibleHeight := v.layout.GetContentHeight()
+	visibleHeight := v.height - 5 // Account for title, spacing, and help
 
 	// Apply scroll offset and limit to visible height
 	startIndex := v.scrollOffset
@@ -159,35 +166,39 @@ func (v *VideoList) View() string {
 	// Add scroll indicators if needed
 	if v.scrollOffset > 0 {
 		// Show indicator that there are items above
-		scrollUpIndicator := v.layout.GetContentStyle().
+		scrollUpIndicator := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
 			Align(lipgloss.Center).
+			Width(v.width).
 			Render("↑ More videos above")
 		videoItems = append([]string{scrollUpIndicator}, videoItems...)
 	}
 
 	if v.scrollOffset+visibleHeight < len(v.videos) {
 		// Show indicator that there are items below
-		scrollDownIndicator := v.layout.GetContentStyle().
+		scrollDownIndicator := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
 			Align(lipgloss.Center).
+			Width(v.width).
 			Render("↓ More videos below")
 		videoItems = append(videoItems, scrollDownIndicator)
 	}
 
 	var content string
 	if v.isLoading {
-		content = v.layout.GetContentStyle().
+		content = lipgloss.NewStyle().
+			Align(lipgloss.Left).
+			Width(v.width).
 			Render(v.spinner.View() + " " + constants.LoadingMoreMessage)
 	} else {
 		content = lipgloss.JoinVertical(lipgloss.Left, videoItems...)
 	}
 
-	helpText := constants.VideoHelpText
-	if v.layout.IsCompactMode() {
-		helpText = constants.CompactVideoHelpText
-	}
-	help := v.layout.GetHelpStyle().Render(helpText)
+	help := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Align(lipgloss.Left).
+		Width(v.width).
+		Render(constants.VideoHelpText)
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -200,34 +211,23 @@ func (v *VideoList) View() string {
 }
 
 func (v *VideoList) renderVideoItem(video types.Video, selected bool) string {
-	contentWidth := v.layout.GetContentWidth() - 2
-
 	// Title (bold if selected)
 	titleStyle := lipgloss.NewStyle()
 	if selected {
 		titleStyle = titleStyle.Bold(true).Underline(true)
 	}
+	title := titleStyle.Render(lipgloss.NewStyle().MaxWidth(v.width - 2).Render(video.Title))
 
-	// Truncate title based on terminal size
-	title := v.layout.TruncateText(video.Title, contentWidth)
-	title = titleStyle.Render(title)
-
-	// Author and duration (dimmed) - more compact for small terminals
-	var author string
-	if v.layout.IsSmallTerminal() {
-		author = fmt.Sprintf("%s • %s", v.layout.TruncateText(video.Author, 15), video.Duration)
-	} else {
-		author = fmt.Sprintf("%s • %s", video.Author, video.Duration)
-	}
-
+	// Author and duration (dimmed)
 	authorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Faint(true)
-	author = authorStyle.Render(author)
+	author := authorStyle.Render(fmt.Sprintf("%s • %s", video.Author, video.Duration))
 
 	return lipgloss.JoinVertical(lipgloss.Left, title, author)
 }
 
 func (v *VideoList) SetSize(width, height int) {
-	v.layout = utils.NewResponsiveLayout(width, height)
+	v.width = width
+	v.height = height
 }
 
 func (v *VideoList) SetVideos(videos []types.Video) {

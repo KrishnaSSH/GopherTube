@@ -2,21 +2,23 @@ package components
 
 import (
 	"fmt"
-	"gophertube/internal/utils"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type StatusBar struct {
-	layout    *utils.ResponsiveLayout
+	width     int
+	height    int
 	message   string
 	timestamp time.Time
 }
 
 func NewStatusBar() *StatusBar {
 	return &StatusBar{
-		layout:    utils.NewResponsiveLayout(80, 3),
+		width:     80,
+		height:    3,
 		message:   "Ready",
 		timestamp: time.Now(),
 	}
@@ -40,19 +42,23 @@ func (s *StatusBar) View() string {
 	if s.message == "Ready" || s.message == "" {
 		return ""
 	}
-	statusStyle := s.layout.GetStatusStyle()
+	statusStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 1)
 
 	timeStr := s.timestamp.Format("15:04:05")
 	status := fmt.Sprintf("%s | %s", s.message, timeStr)
 
-	return statusStyle.Render(status)
+	return statusStyle.Width(s.width).Render(status)
 }
 
 func (s *StatusBar) SetSize(width, height int) {
-	s.layout = utils.NewResponsiveLayout(width, height)
+	s.width = width
+	s.height = height
 }
 
 func (s *StatusBar) SetMessage(message string) {
 	s.message = message
 	s.timestamp = time.Now()
 }
+ 

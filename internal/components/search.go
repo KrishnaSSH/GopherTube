@@ -21,14 +21,14 @@ import (
 )
 
 type SearchComponent struct {
-	textInput        textinput.Model
-	spinner          spinner.Model
-	layout           *utils.ResponsiveLayout
-	isLoading        bool
-	query            string
-	cache            map[string][]types.Video
-	cacheMux         sync.RWMutex
-	invidiousService *services.InvidiousService
+	textInput textinput.Model
+	spinner   spinner.Model
+	width     int
+	height    int
+	isLoading bool
+	query     string
+	cache     map[string][]types.Video
+	cacheMux  sync.RWMutex
 }
 
 type SearchResultMsg struct {
@@ -48,11 +48,11 @@ func NewSearchComponent(config *services.Config) *SearchComponent {
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return &SearchComponent{
-		textInput:        ti,
-		spinner:          s,
-		layout:           utils.NewResponsiveLayout(80, 20),
-		cache:            make(map[string][]types.Video),
-		invidiousService: services.NewInvidiousService(config),
+		textInput: ti,
+		spinner:   s,
+		width:     80,
+		height:    20,
+		cache:     make(map[string][]types.Video),
 	}
 }
 
@@ -90,25 +90,33 @@ func (s *SearchComponent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (s *SearchComponent) View() string {
-	title := s.layout.GetTitleStyle().Render(s.layout.GetResponsiveTitle("GopherTube"))
+	title := lipgloss.NewStyle().
+		Bold(true).
+		Align(lipgloss.Left).
+		Width(s.width).
+		Render("GopherTube")
 
-	searchBox := s.layout.GetContentStyle().
+	searchBox := lipgloss.NewStyle().
 		Padding(0, 2).
+		Width(s.width).
+		Align(lipgloss.Left).
 		Render(s.textInput.View())
 
 	var content string
 	if s.isLoading {
-		content = s.layout.GetContentStyle().
+		content = lipgloss.NewStyle().
+			Align(lipgloss.Left).
+			Width(s.width).
 			Render(s.spinner.View() + " " + constants.SearchingMessage)
 	} else {
 		content = searchBox
 	}
 
-	helpText := constants.SearchHelpText
-	if s.layout.IsCompactMode() {
-		helpText = constants.CompactSearchHelpText
-	}
-	help := s.layout.GetHelpStyle().Render(helpText)
+	help := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Align(lipgloss.Left).
+		Width(s.width).
+		Render("Enter: Search  |  Ctrl+C or Esc: Quit")
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -121,8 +129,9 @@ func (s *SearchComponent) View() string {
 }
 
 func (s *SearchComponent) SetSize(width, height int) {
-	s.layout = utils.NewResponsiveLayout(width, height)
-	s.textInput.Width = s.layout.GetContentWidth()
+	s.width = width
+	s.height = height
+	s.textInput.Width = width - 10
 }
 
 func (s *SearchComponent) ResetLoading() {
@@ -134,7 +143,7 @@ func (s *SearchComponent) GetCurrentQuery() string {
 }
 
 func (s *SearchComponent) SearchWithQuery(query string) ([]types.Video, error) {
-	return s.searchWithInvidious(query)
+	return s.searchWithYtDlp(query)
 }
 
 func (s *SearchComponent) searchVideos(query string) tea.Cmd {
@@ -147,8 +156,8 @@ func (s *SearchComponent) searchVideos(query string) tea.Cmd {
 		}
 		s.cacheMux.RUnlock()
 
-		// Use Invidious to search for videos
-		videos, err := s.searchWithInvidious(query)
+		// Use yt-dlp to search for videos
+		videos, err := s.searchWithYtDlp(query)
 		if err != nil {
 			return SearchResultMsg{Error: err.Error()}
 		}
@@ -162,21 +171,6 @@ func (s *SearchComponent) searchVideos(query string) tea.Cmd {
 	}
 }
 
-func (s *SearchComponent) searchWithInvidious(query string) ([]types.Video, error) {
-	// Performance timer
-	timer := utils.StartTimer("invidious_search")
-	defer timer.StopTimerWithLog()
-
-	// Use Invidious service for search
-	videos, err := s.invidiousService.SearchVideos(query)
-	if err != nil {
-		return nil, err
-	}
-
-	return videos, nil
-}
-
-// Fallback to yt-dlp search if Invidious fails
 func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
 	// Performance timer
 	timer := utils.StartTimer("ytdlp_search")
