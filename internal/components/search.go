@@ -23,8 +23,7 @@ import (
 type SearchComponent struct {
 	textInput        textinput.Model
 	spinner          spinner.Model
-	width            int
-	height           int
+	layout           *utils.ResponsiveLayout
 	isLoading        bool
 	query            string
 	cache            map[string][]types.Video
@@ -51,8 +50,7 @@ func NewSearchComponent(config *services.Config) *SearchComponent {
 	return &SearchComponent{
 		textInput:        ti,
 		spinner:          s,
-		width:            80,
-		height:           20,
+		layout:           utils.NewResponsiveLayout(80, 20),
 		cache:            make(map[string][]types.Video),
 		invidiousService: services.NewInvidiousService(config),
 	}
@@ -92,33 +90,25 @@ func (s *SearchComponent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (s *SearchComponent) View() string {
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Align(lipgloss.Left).
-		Width(s.width).
-		Render("GopherTube")
+	title := s.layout.GetTitleStyle().Render(s.layout.GetResponsiveTitle("GopherTube"))
 
-	searchBox := lipgloss.NewStyle().
+	searchBox := s.layout.GetContentStyle().
 		Padding(0, 2).
-		Width(s.width).
-		Align(lipgloss.Left).
 		Render(s.textInput.View())
 
 	var content string
 	if s.isLoading {
-		content = lipgloss.NewStyle().
-			Align(lipgloss.Left).
-			Width(s.width).
+		content = s.layout.GetContentStyle().
 			Render(s.spinner.View() + " " + constants.SearchingMessage)
 	} else {
 		content = searchBox
 	}
 
-	help := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#888888")).
-		Align(lipgloss.Left).
-		Width(s.width).
-		Render("Enter: Search  |  Ctrl+C or Esc: Quit")
+	helpText := constants.SearchHelpText
+	if s.layout.IsCompactMode() {
+		helpText = constants.CompactSearchHelpText
+	}
+	help := s.layout.GetHelpStyle().Render(helpText)
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -131,9 +121,8 @@ func (s *SearchComponent) View() string {
 }
 
 func (s *SearchComponent) SetSize(width, height int) {
-	s.width = width
-	s.height = height
-	s.textInput.Width = width - 10
+	s.layout = utils.NewResponsiveLayout(width, height)
+	s.textInput.Width = s.layout.GetContentWidth()
 }
 
 func (s *SearchComponent) ResetLoading() {

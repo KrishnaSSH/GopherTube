@@ -9,6 +9,12 @@ const (
 	SecondaryColor = "#888888"
 	ErrorColor     = "#ff0000"
 
+	// Responsive Design
+	MinTerminalWidth  = 40
+	MinTerminalHeight = 10
+	MaxTerminalWidth  = 200
+	MaxTerminalHeight = 100
+
 	// Spacing
 	DefaultPadding = 2
 	DefaultMargin  = 4
@@ -44,6 +50,10 @@ const (
 const (
 	SearchHelpText = "Enter: Search  |  Ctrl+C or Esc: Quit"
 	VideoHelpText  = "↑/↓: Move  |  Enter: Play  |  Esc: Back"
+
+	// Compact help text for small terminals
+	CompactSearchHelpText = "Enter: Search  |  Esc: Quit"
+	CompactVideoHelpText  = "↑/↓: Move  |  Enter: Play  |  Esc: Back"
 )
 
 // File paths

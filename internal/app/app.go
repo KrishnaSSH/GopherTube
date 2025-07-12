@@ -166,15 +166,16 @@ func (a *App) View() string {
 
 	statusBar := a.statusBar.View()
 	if statusBar != "" {
-		return lipgloss.NewStyle().Padding(2, 4).Render(lipgloss.JoinVertical(lipgloss.Left, view, statusBar))
+		return lipgloss.JoinVertical(lipgloss.Left, view, statusBar)
 	}
-	return lipgloss.NewStyle().Padding(2, 4).Render(view)
+	return view
 }
 
 func (a *App) updateLayout(width, height int) {
-	a.searchComponent.SetSize(width, height-3) // Reserve space for status bar
-	a.videoList.SetSize(width, height-3)
-	a.statusBar.SetSize(width, 3)
+	// Use responsive layout that adapts to terminal size
+	a.searchComponent.SetSize(width, height)
+	a.videoList.SetSize(width, height)
+	a.statusBar.SetSize(width, height)
 }
 
 func (a *App) playVideo(video types.Video) tea.Cmd {
