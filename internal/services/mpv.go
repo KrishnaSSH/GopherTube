@@ -29,9 +29,14 @@ func (m *MPVService) PlayVideo(videoURL string) error {
 		return errors.NewPlaybackError(videoURL, err)
 	}
 
-	// Use mpv with optimized settings for faster startup
+	// Use mpv with configurable quality settings
+	formatArg := "--ytdl-format=best[height<=1080]/best[height<=720]/best" // Default: prioritize 1080p
+	if m.config.VideoQuality != "best" {
+		formatArg = fmt.Sprintf("--ytdl-format=%s", m.config.VideoQuality)
+	}
+	
 	args := []string{
-		"--ytdl-format=best[height<=720]", // Limit to 720p for faster loading
+		formatArg,
 		"--no-cache",                      // Disable cache for faster startup
 		"--no-config",                     // Skip config loading
 		videoURL,
