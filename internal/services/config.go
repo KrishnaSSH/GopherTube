@@ -70,3 +70,4 @@ func getDefaultDownloadPath() string {
 	}
 	return filepath.Join(homeDir, "Videos", "gophertube")
 }
+ 

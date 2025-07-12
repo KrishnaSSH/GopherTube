@@ -1,6 +1,23 @@
+<div align="center">
+  <img src="https://go.dev/blog/gopher/header.jpg" alt="Go Gopher" width="100%">
+</div>
+
 # GopherTube
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/dl/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-lightgrey?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube)
+[![Last Commit](https://img.shields.io/github/last-commit/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/commits/main)
+[![Contributors](https://img.shields.io/github/contributors/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/graphs/contributors)
+[![Code Size](https://img.shields.io/github/languages/code-size/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube)
+[![Lines of Code](https://img.shields.io/tokei/lines/github/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube)
+[![Issues](https://img.shields.io/github/issues/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/issues)
+[![PRs](https://img.shields.io/github/issues-pr/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/pulls)
+[![Stars](https://img.shields.io/github/stars/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/stargazers)
+
 A terminal user interface for searching and watching YouTube videos using yt-dlp and mpv.
+
+[![GopherTube CLI](https://img.shields.io/badge/GopherTube-CLI-00ADD8?style=for-the-badge&logo=terminal&logoColor=white)](https://github.com/KrishnaSSH/GopherTube)
 
 ## Features
 
@@ -13,22 +30,24 @@ A terminal user interface for searching and watching YouTube videos using yt-dlp
 
 ## Prerequisites
 
-- **Go 1.21+** - [Download](https://golang.org/dl/)
-- **yt-dlp** - YouTube downloader
-  ```bash
-  pip install yt-dlp
-  ```
-- **mpv** - Media player
-  ```bash
-  # Ubuntu/Debian
-  sudo apt install mpv
-  
-  # macOS
-  brew install mpv
-  
-  # Arch Linux
-  sudo pacman -S mpv
-  ```
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org/dl/) **Go 1.21+** - [Download](https://golang.org/dl/)
+
+[![yt-dlp](https://img.shields.io/badge/yt--dlp-Latest-orange?style=flat-square)](https://github.com/yt-dlp/yt-dlp) **yt-dlp** - YouTube downloader
+```bash
+pip install yt-dlp
+```
+
+[![mpv](https://img.shields.io/badge/mpv-Media%20Player-green?style=flat-square)](https://mpv.io/) **mpv** - Media player
+```bash
+# Ubuntu/Debian
+sudo apt install mpv
+
+# macOS
+brew install mpv
+
+# Arch Linux
+sudo pacman -S mpv
+```
 
 ### Dependencies Installation
 
@@ -47,6 +66,8 @@ sudo pacman -S mpv yt-dlp
 ```
 
 ## Installation
+
+[![Install](https://img.shields.io/badge/Install-Ready-brightgreen?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube)
 
 ### Quick Install (Recommended)
 
@@ -96,6 +117,8 @@ sudo pacman -S mpv yt-dlp
 
 ## Usage
 
+[![Usage](https://img.shields.io/badge/Usage-Guide-blue?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube)
+
 ### Navigation
 
 - **Tab** - Load more videos (when viewing results)
@@ -120,6 +143,8 @@ sudo pacman -S mpv yt-dlp
 
 ## Configuration
 
+[![Config](https://img.shields.io/badge/Config-YAML-yellow?style=flat-square)](https://yaml.org/)
+
 Create a configuration file at `~/.config/gophertube/gophertube.yaml`:
 
 ```yaml
@@ -137,6 +162,8 @@ download_path: "~/Videos/gophertube"
 ```
 
 ## Project Structure
+
+[![Structure](https://img.shields.io/badge/Structure-Organized-lightgrey?style=flat-square)](https://github.com/KrishnaSSH/GopherTube)
 
 ```
 gophertube/
@@ -156,6 +183,8 @@ gophertube/
 
 ## Development
 
+[![Development](https://img.shields.io/badge/Development-Active-brightgreen?style=flat-square)](https://github.com/KrishnaSSH/GopherTube)
+
 ### Building
 
 ```bash
@@ -172,12 +201,14 @@ make install
 
 This project follows Go best practices and uses:
 
-- **Bubble Tea** for TUI framework
-- **Lip Gloss** for styling
-- **Cobra** for CLI commands
-- **Viper** for configuration management
+[![Bubble Tea](https://img.shields.io/badge/Bubble%20Tea-TUI%20Framework-blue?style=flat-square)](https://github.com/charmbracelet/bubbletea)
+[![Lip Gloss](https://img.shields.io/badge/Lip%20Gloss-Styling-pink?style=flat-square)](https://github.com/charmbracelet/lipgloss)
+[![Cobra](https://img.shields.io/badge/Cobra-CLI%20Commands-green?style=flat-square)](https://github.com/spf13/cobra)
+[![Viper](https://img.shields.io/badge/Viper-Config%20Management-purple?style=flat-square)](https://github.com/spf13/viper)
 
 ## Troubleshooting
+
+[![Support](https://img.shields.io/badge/Support-Help-orange?style=flat-square)](https://github.com/KrishnaSSH/GopherTube/issues)
 
 ### Common Issues
 
@@ -200,4 +231,12 @@ This project follows Go best practices and uses:
 
 ## License
 
-This project is licensed under the [GNU GPLv3](https://github.com/KrishnaSSH/GopherTube/blob/main/LICENSE). 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
+
+This project is licensed under the [GNU GPLv3](https://github.com/KrishnaSSH/GopherTube/blob/main/LICENSE).
+
+---
+
+[![Star](https://img.shields.io/github/stars/KrishnaSSH/GopherTube?style=social)](https://github.com/KrishnaSSH/GopherTube)
+[![Fork](https://img.shields.io/github/forks/KrishnaSSH/GopherTube?style=social)](https://github.com/KrishnaSSH/GopherTube)
+[![Watch](https://img.shields.io/github/watchers/KrishnaSSH/GopherTube?style=social)](https://github.com/KrishnaSSH/GopherTube) 

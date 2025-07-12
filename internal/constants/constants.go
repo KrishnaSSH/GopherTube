@@ -47,3 +47,4 @@ const (
 	ConfigDir      = "$HOME/.config/gophertube"
 	DownloadsDir   = "~/Videos/gophertube"
 )
+ 

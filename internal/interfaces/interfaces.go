@@ -33,3 +33,4 @@ type UIComponent interface {
 	View() string
 	SetSize(width, height int)
 }
+ 

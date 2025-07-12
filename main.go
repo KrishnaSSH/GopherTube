@@ -50,3 +50,4 @@ For more information, see the man page: man gophertube`,
 		os.Exit(1)
 	}
 }
+ 

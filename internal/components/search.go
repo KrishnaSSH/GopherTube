@@ -232,3 +232,4 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 
 	return videos, nil
 }
+ 

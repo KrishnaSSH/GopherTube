@@ -202,3 +202,4 @@ func (a *App) loadMoreVideos() tea.Cmd {
 		return components.SearchResultMsg{Videos: videos}
 	}
 }
+ 

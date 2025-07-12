@@ -13,3 +13,5 @@ install:
 	@echo "GopherTube installed successfully!"
 	@echo "Configuration file created at ~/.config/gophertube/gophertube.yaml"
 	@echo "Run 'gophertube --help' to get started." 
+
+	
