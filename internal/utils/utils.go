@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -59,6 +60,30 @@ func ValidateURL(url string) bool {
 	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
 }
 
+// ExtractVideoID extracts YouTube video ID from various URL formats
+func ExtractVideoID(url string) string {
+	// Common YouTube URL patterns
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})`),
+		regexp.MustCompile(`youtube\.com/v/([a-zA-Z0-9_-]{11})`),
+		regexp.MustCompile(`youtube\.com/watch\?.*v=([a-zA-Z0-9_-]{11})`),
+	}
+
+	for _, pattern := range patterns {
+		matches := pattern.FindStringSubmatch(url)
+		if len(matches) > 1 {
+			return matches[1]
+		}
+	}
+
+	// If no pattern matches, assume the URL is already a video ID
+	if len(url) == 11 && regexp.MustCompile(`^[a-zA-Z0-9_-]{11}$`).MatchString(url) {
+		return url
+	}
+
+	return ""
+}
+
 // SafeGetString safely extracts a string from a map
 func SafeGetString(data map[string]interface{}, key string) string {
 	if val, ok := data[key]; ok {
@@ -93,22 +118,6 @@ func Debounce(fn func(), delay time.Duration) func() {
 		}
 		timer = time.AfterFunc(delay, fn)
 	}
-}
-
-// Retry executes a function with retry logic
-func Retry(fn func() error, maxRetries int, delay time.Duration) error {
-	var lastErr error
-	for i := 0; i < maxRetries; i++ {
-		if err := fn(); err == nil {
-			return nil
-		} else {
-			lastErr = err
-			if i < maxRetries-1 {
-				time.Sleep(delay)
-			}
-		}
-	}
-	return lastErr
 }
 
 // Performance monitoring utilities

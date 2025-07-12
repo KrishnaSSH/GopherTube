@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gophertube/internal/constants"
+	"gophertube/internal/types"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -14,7 +15,7 @@ import (
 
 type VideoList struct {
 	list         list.Model
-	videos       []Video
+	videos       []types.Video
 	width        int
 	height       int
 	selected     int
@@ -35,7 +36,7 @@ func NewVideoList() *VideoList {
 
 	return &VideoList{
 		list:         l,
-		videos:       []Video{},
+		videos:       []types.Video{},
 		width:        80,
 		height:       20,
 		spinner:      s,
@@ -209,7 +210,7 @@ func (v *VideoList) View() string {
 	)
 }
 
-func (v *VideoList) renderVideoItem(video Video, selected bool) string {
+func (v *VideoList) renderVideoItem(video types.Video, selected bool) string {
 	// Title (bold if selected)
 	titleStyle := lipgloss.NewStyle()
 	if selected {
@@ -229,7 +230,7 @@ func (v *VideoList) SetSize(width, height int) {
 	v.height = height
 }
 
-func (v *VideoList) SetVideos(videos []Video) {
+func (v *VideoList) SetVideos(videos []types.Video) {
 	v.videos = videos
 	v.selected = 0
 	v.scrollOffset = 0
@@ -239,7 +240,7 @@ func (v *VideoList) ResetLoading() {
 	v.isLoading = false
 }
 
-func (v *VideoList) AppendVideos(videos []Video) {
+func (v *VideoList) AppendVideos(videos []types.Video) {
 	v.videos = append(v.videos, videos...)
 	v.isLoading = false
 	// Don't reset scroll offset when appending - let user continue from where they were

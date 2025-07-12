@@ -9,11 +9,19 @@ ytdlp_path: "yt-dlp"
 
 # Default video quality for downloads
 # Options: best, worst, 720p, 1080p, etc.
-video_quality: "best"
+video_quality: "best[height<=1080]/best"
 
 # Download directory for videos
 # Default: ~/Videos/gophertube
 download_path: "~/Videos/gophertube"
+
+# Invidious instance for faster search (using curl + jq)
+# Default: yewtu.be (privacy-focused YouTube frontend)
+invidious_url: "https://yewtu.be"
+
+# Number of search results to fetch
+# Default: 8 (optimized for speed)
+search_limit: 8
 
 # Additional mpv options
 # mpv_options: "--no-video-title-show --geometry 50%:50%"

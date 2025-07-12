@@ -1,28 +1,20 @@
 package components
 
-type Video struct {
-	Title       string
-	Author      string
-	Duration    string
-	Views       string
-	URL         string
-	Thumbnail   string
-	Description string
-}
+import "gophertube/internal/types"
 
+// Message types for component communication
 type VideoSelectedMsg struct {
-	Video Video
+	Video types.Video
 }
 
 type VideoPlayedMsg struct {
-	Video Video
+	Video types.Video
+}
+
+type ErrorMsg struct {
+	Error string
 }
 
 type LoadMoreVideosMsg struct{}
 
 type LoadMoreVideosTimeoutMsg struct{}
-
-type ErrorMsg struct {
-	Error string
-}
- 

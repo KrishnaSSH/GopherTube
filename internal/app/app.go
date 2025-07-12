@@ -5,6 +5,7 @@ import (
 
 	"gophertube/internal/components"
 	"gophertube/internal/services"
+	"gophertube/internal/types"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,7 +23,7 @@ type App struct {
 type AppState struct {
 	CurrentView   View
 	SearchQuery   string
-	Videos        []components.Video
+	Videos        []types.Video
 	SelectedIndex int
 	IsLoading     bool
 	ErrorMessage  string
@@ -41,7 +42,7 @@ func NewApp() *App {
 	mpvService := services.NewMPVService(config)
 
 	return &App{
-		searchComponent: components.NewSearchComponent(),
+		searchComponent: components.NewSearchComponent(config),
 		videoList:       components.NewVideoList(),
 		statusBar:       components.NewStatusBar(),
 		config:          config,
@@ -176,7 +177,7 @@ func (a *App) updateLayout(width, height int) {
 	a.statusBar.SetSize(width, 3)
 }
 
-func (a *App) playVideo(video components.Video) tea.Cmd {
+func (a *App) playVideo(video types.Video) tea.Cmd {
 	return func() tea.Msg {
 		if err := a.mpvService.PlayVideo(video.URL); err != nil {
 			return components.ErrorMsg{Error: err.Error()}
@@ -193,7 +194,7 @@ func (a *App) loadMoreVideos() tea.Cmd {
 			return components.ErrorMsg{Error: "No search query available"}
 		}
 
-		// Get more videos using yt-dlp
+		// Get more videos using Invidious
 		videos, err := a.searchComponent.SearchWithQuery(query)
 		if err != nil {
 			return components.ErrorMsg{Error: err.Error()}
@@ -202,4 +203,3 @@ func (a *App) loadMoreVideos() tea.Cmd {
 		return components.SearchResultMsg{Videos: videos}
 	}
 }
- 

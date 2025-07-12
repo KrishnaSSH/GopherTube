@@ -10,6 +10,8 @@ import (
 
 	"gophertube/internal/constants"
 	"gophertube/internal/errors"
+	"gophertube/internal/services"
+	"gophertube/internal/types"
 	"gophertube/internal/utils"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -19,22 +21,23 @@ import (
 )
 
 type SearchComponent struct {
-	textInput textinput.Model
-	spinner   spinner.Model
-	width     int
-	height    int
-	isLoading bool
-	query     string
-	cache     map[string][]Video
-	cacheMux  sync.RWMutex
+	textInput        textinput.Model
+	spinner          spinner.Model
+	width            int
+	height           int
+	isLoading        bool
+	query            string
+	cache            map[string][]types.Video
+	cacheMux         sync.RWMutex
+	invidiousService *services.InvidiousService
 }
 
 type SearchResultMsg struct {
-	Videos []Video
+	Videos []types.Video
 	Error  string
 }
 
-func NewSearchComponent() *SearchComponent {
+func NewSearchComponent(config *services.Config) *SearchComponent {
 	ti := textinput.New()
 	ti.Placeholder = "Search for YouTube videos..."
 	ti.Focus()
@@ -46,11 +49,12 @@ func NewSearchComponent() *SearchComponent {
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return &SearchComponent{
-		textInput: ti,
-		spinner:   s,
-		width:     80,
-		height:    20,
-		cache:     make(map[string][]Video),
+		textInput:        ti,
+		spinner:          s,
+		width:            80,
+		height:           20,
+		cache:            make(map[string][]types.Video),
+		invidiousService: services.NewInvidiousService(config),
 	}
 }
 
@@ -140,8 +144,8 @@ func (s *SearchComponent) GetCurrentQuery() string {
 	return s.textInput.Value()
 }
 
-func (s *SearchComponent) SearchWithQuery(query string) ([]Video, error) {
-	return s.searchWithYtDlp(query)
+func (s *SearchComponent) SearchWithQuery(query string) ([]types.Video, error) {
+	return s.searchWithInvidious(query)
 }
 
 func (s *SearchComponent) searchVideos(query string) tea.Cmd {
@@ -154,8 +158,8 @@ func (s *SearchComponent) searchVideos(query string) tea.Cmd {
 		}
 		s.cacheMux.RUnlock()
 
-		// Use yt-dlp to search for videos
-		videos, err := s.searchWithYtDlp(query)
+		// Use Invidious to search for videos
+		videos, err := s.searchWithInvidious(query)
 		if err != nil {
 			return SearchResultMsg{Error: err.Error()}
 		}
@@ -169,9 +173,24 @@ func (s *SearchComponent) searchVideos(query string) tea.Cmd {
 	}
 }
 
-func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
+func (s *SearchComponent) searchWithInvidious(query string) ([]types.Video, error) {
 	// Performance timer
-	timer := utils.StartTimer("search_with_ytdlp")
+	timer := utils.StartTimer("invidious_search")
+	defer timer.StopTimerWithLog()
+
+	// Use Invidious service for search
+	videos, err := s.invidiousService.SearchVideos(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return videos, nil
+}
+
+// Fallback to yt-dlp search if Invidious fails
+func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
+	// Performance timer
+	timer := utils.StartTimer("ytdlp_search")
 	defer timer.StopTimerWithLog()
 
 	// Check if yt-dlp is available
@@ -223,7 +242,7 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 	}
 
 	// Parse the JSON output more efficiently
-	var videos []Video
+	var videos []types.Video
 	lines := utils.FastSplit(utils.FastTrim(string(output)), "\n")
 
 	for _, line := range lines {
@@ -237,7 +256,7 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 		}
 
 		// Only extract essential fields for speed
-		video := Video{
+		video := types.Video{
 			Title:       utils.SafeGetString(videoData, "title"),
 			Author:      utils.SafeGetString(videoData, "uploader"),
 			Duration:    utils.FormatDuration(utils.SafeGetInt(videoData, "duration")),
@@ -263,6 +282,6 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 // ClearCache clears the search cache
 func (s *SearchComponent) ClearCache() {
 	s.cacheMux.Lock()
-	s.cache = make(map[string][]Video)
+	s.cache = make(map[string][]types.Video)
 	s.cacheMux.Unlock()
 }
