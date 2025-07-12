@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"strings"
+	"sync"
 	"time"
 
+	"gophertube/internal/constants"
 	"gophertube/internal/errors"
 	"gophertube/internal/utils"
 
@@ -24,6 +25,8 @@ type SearchComponent struct {
 	height    int
 	isLoading bool
 	query     string
+	cache     map[string][]Video
+	cacheMux  sync.RWMutex
 }
 
 type SearchResultMsg struct {
@@ -47,6 +50,7 @@ func NewSearchComponent() *SearchComponent {
 		spinner:   s,
 		width:     80,
 		height:    20,
+		cache:     make(map[string][]Video),
 	}
 }
 
@@ -101,7 +105,7 @@ func (s *SearchComponent) View() string {
 		content = lipgloss.NewStyle().
 			Align(lipgloss.Left).
 			Width(s.width).
-			Render(s.spinner.View() + " Searching...")
+			Render(s.spinner.View() + " " + constants.SearchingMessage)
 	} else {
 		content = searchBox
 	}
@@ -142,51 +146,73 @@ func (s *SearchComponent) SearchWithQuery(query string) ([]Video, error) {
 
 func (s *SearchComponent) searchVideos(query string) tea.Cmd {
 	return func() tea.Msg {
+		// Check cache first
+		s.cacheMux.RLock()
+		if cached, exists := s.cache[query]; exists {
+			s.cacheMux.RUnlock()
+			return SearchResultMsg{Videos: cached}
+		}
+		s.cacheMux.RUnlock()
+
 		// Use yt-dlp to search for videos
 		videos, err := s.searchWithYtDlp(query)
 		if err != nil {
 			return SearchResultMsg{Error: err.Error()}
 		}
 
+		// Cache the results
+		s.cacheMux.Lock()
+		s.cache[query] = videos
+		s.cacheMux.Unlock()
+
 		return SearchResultMsg{Videos: videos}
 	}
 }
 
 func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
+	// Performance timer
+	timer := utils.StartTimer("search_with_ytdlp")
+	defer timer.StopTimerWithLog()
+
 	// Check if yt-dlp is available
 	if err := utils.CheckCommandExists("yt-dlp"); err != nil {
 		return nil, errors.NewYTDlpError("yt-dlp", err)
 	}
 
-	// Use yt-dlp to search YouTube with faster options
+	// Optimized yt-dlp search with faster parameters
 	cmd := exec.Command("yt-dlp",
 		"--dump-json",
 		"--no-playlist",
 		"--flat-playlist",
-		"--max-downloads", "10", // Get 10 videos
-		"--no-warnings",                     // Reduce output
-		"--quiet",                           // Quiet mode for speed
-		fmt.Sprintf("ytsearch10:%s", query), // Get 10 search results
+		"--max-downloads", fmt.Sprintf("%d", constants.MaxSearchResults),
+		"--no-warnings",
+		"--quiet",
+		"--no-check-certificates",                   // Skip SSL verification for speed
+		"--no-cache-dir",                            // Disable cache for faster startup
+		"--extractor-args", "youtube:skip=hls,dash", // Skip complex formats
+		fmt.Sprintf("ytsearch%d:%s", constants.MaxSearchResults, query),
 	)
 
-	// Add timeout context
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	// Shorter timeout for faster failure
+	ctx, cancel := context.WithTimeout(context.Background(), constants.SearchTimeout*time.Second)
 	defer cancel()
 	cmd = exec.CommandContext(ctx, cmd.Path, cmd.Args[1:]...)
 
 	output, err := cmd.Output()
 	if err != nil {
-		// Try with fewer results if the first one fails
+		// Try with even fewer results and different approach
 		cmd = exec.Command("yt-dlp",
 			"--dump-json",
 			"--no-playlist",
 			"--max-downloads", "5",
 			"--no-warnings",
 			"--quiet",
+			"--no-check-certificates",
+			"--no-cache-dir",
 			fmt.Sprintf("ytsearch5:%s", query),
 		)
 
-		ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx2, cancel2 := context.WithTimeout(context.Background(), constants.FallbackTimeout*time.Second)
 		defer cancel2()
 		cmd = exec.CommandContext(ctx2, cmd.Path, cmd.Args[1:]...)
 
@@ -196,9 +222,9 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 		}
 	}
 
-	// Parse the JSON output
+	// Parse the JSON output more efficiently
 	var videos []Video
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	lines := utils.FastSplit(utils.FastTrim(string(output)), "\n")
 
 	for _, line := range lines {
 		if line == "" {
@@ -210,6 +236,7 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 			continue // Skip invalid JSON lines
 		}
 
+		// Only extract essential fields for speed
 		video := Video{
 			Title:       utils.SafeGetString(videoData, "title"),
 			Author:      utils.SafeGetString(videoData, "uploader"),
@@ -220,8 +247,8 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 			Description: utils.SafeGetString(videoData, "description"),
 		}
 
-		// Only add videos with valid URLs
-		if video.URL != "" {
+		// Only add videos with valid URLs and titles
+		if video.URL != "" && video.Title != "" {
 			videos = append(videos, video)
 		}
 	}
@@ -232,4 +259,10 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]Video, error) {
 
 	return videos, nil
 }
- 
+
+// ClearCache clears the search cache
+func (s *SearchComponent) ClearCache() {
+	s.cacheMux.Lock()
+	s.cache = make(map[string][]Video)
+	s.cacheMux.Unlock()
+}

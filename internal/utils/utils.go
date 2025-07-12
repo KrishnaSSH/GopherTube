@@ -110,3 +110,68 @@ func Retry(fn func() error, maxRetries int, delay time.Duration) error {
 	}
 	return lastErr
 }
+
+// Performance monitoring utilities
+type PerformanceTimer struct {
+	start time.Time
+	name  string
+}
+
+// StartTimer creates a new performance timer
+func StartTimer(name string) *PerformanceTimer {
+	return &PerformanceTimer{
+		start: time.Now(),
+		name:  name,
+	}
+}
+
+// StopTimer stops the timer and returns the duration
+func (pt *PerformanceTimer) StopTimer() time.Duration {
+	return time.Since(pt.start)
+}
+
+// StopTimerWithLog stops the timer and logs the duration
+func (pt *PerformanceTimer) StopTimerWithLog() time.Duration {
+	duration := time.Since(pt.start)
+	fmt.Printf("[PERF] %s took %v\n", pt.name, duration)
+	return duration
+}
+
+// Optimized string processing
+func FastSplit(s string, sep string) []string {
+	if sep == "" {
+		return []string{s}
+	}
+
+	// Pre-allocate slice for better performance
+	result := make([]string, 0, strings.Count(s, sep)+1)
+
+	start := 0
+	for i := 0; i < len(s)-len(sep)+1; i++ {
+		if s[i:i+len(sep)] == sep {
+			result = append(result, s[start:i])
+			start = i + len(sep)
+			i += len(sep) - 1
+		}
+	}
+	result = append(result, s[start:])
+	return result
+}
+
+// FastTrim removes leading and trailing whitespace efficiently
+func FastTrim(s string) string {
+	start := 0
+	end := len(s)
+
+	// Find start of non-whitespace
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+
+	// Find end of non-whitespace
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+
+	return s[start:end]
+}

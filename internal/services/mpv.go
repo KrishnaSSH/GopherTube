@@ -1,9 +1,12 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
+	"time"
 
+	"gophertube/internal/constants"
 	"gophertube/internal/errors"
 	"gophertube/internal/utils"
 )
@@ -19,6 +22,10 @@ func NewMPVService(config *Config) *MPVService {
 }
 
 func (m *MPVService) PlayVideo(videoURL string) error {
+	// Performance timer
+	timer := utils.StartTimer("play_video")
+	defer timer.StopTimerWithLog()
+
 	// Validate URL
 	if !utils.ValidateURL(videoURL) {
 		return errors.NewPlaybackError(videoURL, fmt.Errorf("invalid URL"))
@@ -32,13 +39,41 @@ func (m *MPVService) PlayVideo(videoURL string) error {
 		return errors.NewPlaybackError(videoURL, err)
 	}
 
-	// Use yt-dlp to get the direct video+audio URL(s) with 1080p priority
-	format := "bestvideo[height=1080]+bestaudio/best[height<=1080]/best"
-	cmd := exec.Command(m.config.YTDlpPath, "-f", format, "--get-url", videoURL)
+	// Use optimized yt-dlp to get direct video URL with faster parameters
+	cmd := exec.Command(m.config.YTDlpPath,
+		"-f", constants.DefaultVideoQuality,
+		"--get-url",
+		"--no-playlist",
+		"--no-warnings",
+		"--quiet",
+		"--no-check-certificates", // Skip SSL verification for speed
+		"--no-cache-dir",          // Disable cache for faster startup
+		videoURL,
+	)
+
+	// Add timeout for faster failure
+	ctx, cancel := context.WithTimeout(context.Background(), constants.PlaybackTimeout*time.Second)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, cmd.Path, cmd.Args[1:]...)
+
 	output, err := cmd.Output()
 	if err != nil || len(output) == 0 {
-		// Fallback to best available
-		cmd = exec.Command(m.config.YTDlpPath, "-f", "best", "--get-url", videoURL)
+		// Fallback to simplest format for maximum compatibility
+		cmd = exec.Command(m.config.YTDlpPath,
+			"-f", constants.FallbackQuality,
+			"--get-url",
+			"--no-playlist",
+			"--no-warnings",
+			"--quiet",
+			"--no-check-certificates",
+			"--no-cache-dir",
+			videoURL,
+		)
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), constants.FallbackPlaybackTimeout*time.Second)
+		defer cancel2()
+		cmd = exec.CommandContext(ctx2, cmd.Path, cmd.Args[1:]...)
+
 		output, err = cmd.Output()
 		if err != nil || len(output) == 0 {
 			return errors.NewPlaybackError(videoURL, fmt.Errorf("yt-dlp failed to get video URL: %w", err))
@@ -56,8 +91,15 @@ func (m *MPVService) PlayVideo(videoURL string) error {
 		return errors.NewPlaybackError(videoURL, fmt.Errorf("no playable URL found"))
 	}
 
-	// Pass the URLs to mpv
-	mpvArgs := append([]string{"--no-config", "--no-cache"}, urls...)
+	// Pass the URLs to mpv with optimized settings
+	mpvArgs := append([]string{
+		"--no-config",
+		"--no-cache",
+		"--no-ytdl",             // Disable mpv's built-in yt-dlp for speed
+		"--no-video-title-show", // Hide video title overlay
+		"--geometry", "50%:50%", // Center the window
+	}, urls...)
+
 	cmd = exec.Command(m.config.MPVPath, mpvArgs...)
 	if err := cmd.Start(); err != nil {
 		return errors.NewPlaybackError(videoURL, err)
@@ -80,6 +122,10 @@ func (m *MPVService) DownloadVideo(videoURL, outputPath string) error {
 		"--no-playlist",
 		"--format", "best",
 		"--output", outputPath,
+		"--no-warnings",
+		"--quiet",
+		"--no-check-certificates",
+		"--no-cache-dir",
 		videoURL,
 	}
 
@@ -105,6 +151,10 @@ func (m *MPVService) GetVideoInfo(videoURL string) (string, error) {
 	args := []string{
 		"--no-playlist",
 		"--dump-json",
+		"--no-warnings",
+		"--quiet",
+		"--no-check-certificates",
+		"--no-cache-dir",
 		videoURL,
 	}
 
@@ -132,4 +182,3 @@ func splitLines(s string) []string {
 	}
 	return lines
 }
- 

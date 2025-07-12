@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"gophertube/internal/constants"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -123,7 +125,7 @@ func (v *VideoList) View() string {
 			Foreground(lipgloss.Color("#888888")).
 			Align(lipgloss.Left).
 			Width(v.width).
-			Render("No videos found. Try searching for something!")
+			Render(constants.NoVideosMessage)
 	}
 
 	title := lipgloss.NewStyle().
@@ -186,7 +188,7 @@ func (v *VideoList) View() string {
 		content = lipgloss.NewStyle().
 			Align(lipgloss.Left).
 			Width(v.width).
-			Render(v.spinner.View() + " Loading more videos...")
+			Render(v.spinner.View() + " " + constants.LoadingMoreMessage)
 	} else {
 		content = lipgloss.JoinVertical(lipgloss.Left, videoItems...)
 	}
@@ -195,7 +197,7 @@ func (v *VideoList) View() string {
 		Foreground(lipgloss.Color("#888888")).
 		Align(lipgloss.Left).
 		Width(v.width).
-		Render("↑/↓: Move  |  Enter: Play  |  Tab: More  |  Esc: Back")
+		Render(constants.VideoHelpText)
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
