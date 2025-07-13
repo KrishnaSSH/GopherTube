@@ -13,14 +13,17 @@ import (
 )
 
 type VideoList struct {
-	videos       []types.Video
-	width        int
-	height       int
-	selected     int
-	isLoading    bool
-	isPlaying    bool // New state for video playback
-	spinner      spinner.Model
-	scrollOffset int // Track scroll position
+	videos          []types.Video
+	width           int
+	height          int
+	selected        int
+	isLoading       bool
+	isPlaying       bool // New state for video playback
+	spinner         spinner.Model
+	scrollOffset    int      // Track scroll position
+	justPlayed      bool     // Track if a video was just played
+	tips            []string // Array of rotating tips
+	currentTipIndex int      // Current tip index
 }
 
 func NewVideoList() *VideoList {
@@ -28,17 +31,31 @@ func NewVideoList() *VideoList {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
+	// Initialize tips array for video list
+	tips := []string{
+		"Tip: Press Tab to load more results",
+		"Tip: Use ↑/↓ arrows to navigate",
+		"Tip: Press Enter to play selected video",
+		"Tip: Press Esc to go back to search",
+		"Tip: Press 'g' to go to top, 'G' to go to bottom",
+	}
+
 	return &VideoList{
-		videos:       []types.Video{},
-		width:        80,
-		height:       20,
-		spinner:      s,
-		scrollOffset: 0,
+		videos:          []types.Video{},
+		width:           80,
+		height:          20,
+		spinner:         s,
+		scrollOffset:    0,
+		tips:            tips,
+		currentTipIndex: 0,
 	}
 }
 
 func (v *VideoList) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		v.spinner.Tick,
+		v.rotateTip(),
+	)
 }
 
 func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -50,7 +67,8 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			if len(v.videos) > 0 && v.selected < len(v.videos) {
-				v.isPlaying = true // Set playing state
+				v.isPlaying = true   // Set playing state
+				v.justPlayed = false // Reset justPlayed on new play
 				return v, tea.Batch(
 					v.spinner.Tick,
 					func() tea.Msg {
@@ -114,7 +132,11 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case VideoPlayedMsg:
 		v.isPlaying = false // Clear playing state
+		v.justPlayed = true // Show the "Tab for more" message
 		return v, nil
+	case TipRotateMsg:
+		v.currentTipIndex = (v.currentTipIndex + 1) % len(v.tips)
+		return v, v.rotateTip()
 	}
 
 	// Clamp selected
@@ -140,6 +162,12 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return v, nil
 }
 
+func (v *VideoList) rotateTip() tea.Cmd {
+	return tea.Tick(4*time.Second, func(t time.Time) tea.Msg {
+		return TipRotateMsg{}
+	})
+}
+
 func (v *VideoList) View() string {
 	if len(v.videos) == 0 {
 		return lipgloss.NewStyle().
@@ -149,13 +177,7 @@ func (v *VideoList) View() string {
 			Render(constants.NoVideosMessage)
 	}
 
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Align(lipgloss.Left).
-		Width(v.width).
-		Render("Results")
-
-	availableHeight := v.height - 5
+	availableHeight := v.height - 3 // less padding
 	maxScroll := 0
 	if availableHeight < len(v.videos) {
 		maxScroll = len(v.videos) - availableHeight
@@ -174,32 +196,14 @@ func (v *VideoList) View() string {
 	}
 
 	var lines []string
-	if startIndex > 0 {
-		scrollUpIndicator := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#888888")).
-			Align(lipgloss.Center).
-			Width(v.width).
-			Render("↑ More videos above")
-		lines = append(lines, scrollUpIndicator)
-		availableHeight--
-	}
-	for i := startIndex; i < endIndex && len(lines) < availableHeight; i++ {
+	for i := startIndex; i < endIndex; i++ {
 		if i < len(v.videos) {
-			// Add spinner to the left if this is the selected item and we're playing
 			itemContent := v.renderVideoItem(v.videos[i], i == v.selected)
 			if i == v.selected && v.isPlaying {
 				itemContent = v.spinner.View() + " " + itemContent
 			}
 			lines = append(lines, itemContent)
 		}
-	}
-	if endIndex < len(v.videos) && len(lines) < availableHeight {
-		scrollDownIndicator := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#888888")).
-			Align(lipgloss.Center).
-			Width(v.width).
-			Render("↓ More videos below")
-		lines = append(lines, scrollDownIndicator)
 	}
 
 	var content string
@@ -214,30 +218,49 @@ func (v *VideoList) View() string {
 
 	help := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#888888")).
+		Faint(true).
 		Align(lipgloss.Left).
 		Width(v.width).
 		Render(constants.VideoHelpText)
 
+	// Rotating tip
+	tip := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00ADD8")).
+		Faint(false).
+		Bold(true).
+		Align(lipgloss.Left).
+		Width(v.width).
+		Render(v.tips[v.currentTipIndex])
+
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		title,
-		"",
 		content,
 		"",
 		help,
+		tip,
 	)
 }
 
 func (v *VideoList) renderVideoItem(video types.Video, selected bool) string {
-	// Title (bold if selected)
-	titleStyle := lipgloss.NewStyle()
-	if selected {
-		titleStyle = titleStyle.Bold(true).Underline(true)
+	meta := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Faint(true).
+		Render(fmt.Sprintf("%s • %s", video.Author, video.Duration))
+	title := video.Title
+	maxTitleLen := v.width - len(meta) - 4
+	if maxTitleLen > 0 && len(title) > maxTitleLen {
+		title = title[:maxTitleLen-1] + "…"
 	}
-	// Render both title and author/duration on the same line
-	return titleStyle.Render(video.Title) + "  " +
-		lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Faint(true).
-			Render(fmt.Sprintf("%s • %s", video.Author, video.Duration))
+	item := title + "  " + meta
+	if selected {
+		item = lipgloss.NewStyle().
+			Background(lipgloss.Color("#00ADD8")).
+			Foreground(lipgloss.Color("#222222")).
+			MarginRight(10).
+			Width(v.width - 10).
+			Render(item)
+	} else {
+		item = lipgloss.NewStyle().Width(v.width).Render(item)
+	}
+	return item
 }
 
 func (v *VideoList) SetSize(width, height int) {
@@ -249,6 +272,7 @@ func (v *VideoList) SetVideos(videos []types.Video) {
 	v.videos = videos
 	v.selected = 0
 	v.scrollOffset = 0
+	v.justPlayed = false
 }
 
 func (v *VideoList) ResetLoading() {
@@ -257,6 +281,7 @@ func (v *VideoList) ResetLoading() {
 
 func (v *VideoList) ResetPlaying() {
 	v.isPlaying = false
+	v.justPlayed = false
 }
 
 func (v *VideoList) AppendVideos(videos []types.Video) {

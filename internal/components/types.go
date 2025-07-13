@@ -18,3 +18,5 @@ type ErrorMsg struct {
 type LoadMoreVideosMsg struct{}
 
 type LoadMoreVideosTimeoutMsg struct{}
+
+type TipRotateMsg struct{}

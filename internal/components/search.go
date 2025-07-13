@@ -1,19 +1,14 @@
 package components
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
 	"gophertube/internal/constants"
-	"gophertube/internal/errors"
 	"gophertube/internal/services"
 	"gophertube/internal/types"
-	"gophertube/internal/utils"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -32,6 +27,10 @@ type SearchComponent struct {
 	cacheMux           sync.RWMutex
 	recentSearches     []string
 	lastSearchDuration time.Duration
+	config             *services.Config // Store config
+	tips               []string         // Array of rotating tips
+	currentTipIndex    int              // Current tip index
+	tipTimer           time.Time        // Timer for tip rotation
 }
 
 type SearchResultMsg struct {
@@ -50,18 +49,34 @@ func NewSearchComponent(config *services.Config) *SearchComponent {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
+	// Initialize tips array
+	tips := []string{
+		"Tip: Use Tab to load more results!",
+		"Tip: Press Esc to go back to search",
+		"Tip: Try searching for 'lofi hip hop' or 'cat videos'",
+		"Tip: Use ↑/↓ arrows to navigate video list",
+		"Tip: Press Enter to play selected video",
+	}
+
 	return &SearchComponent{
-		textInput:      ti,
-		spinner:        s,
-		width:          80,
-		height:         20,
-		cache:          make(map[string][]types.Video),
-		recentSearches: []string{},
+		textInput:       ti,
+		spinner:         s,
+		width:           80,
+		height:          20,
+		cache:           make(map[string][]types.Video),
+		recentSearches:  []string{},
+		config:          config, // Store config
+		tips:            tips,
+		currentTipIndex: 0,
+		tipTimer:        time.Now(),
 	}
 }
 
 func (s *SearchComponent) Init() tea.Cmd {
-	return textinput.Blink
+	return tea.Batch(
+		textinput.Blink,
+		s.rotateTip(),
+	)
 }
 
 func (s *SearchComponent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -86,11 +101,20 @@ func (s *SearchComponent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			s.spinner, cmd = s.spinner.Update(msg)
 			return s, cmd
 		}
+	case TipRotateMsg:
+		s.currentTipIndex = (s.currentTipIndex + 1) % len(s.tips)
+		return s, s.rotateTip()
 	}
 
 	var cmd tea.Cmd
 	s.textInput, cmd = s.textInput.Update(msg)
 	return s, cmd
+}
+
+func (s *SearchComponent) rotateTip() tea.Cmd {
+	return tea.Tick(10*time.Second, func(t time.Time) tea.Msg {
+		return TipRotateMsg{}
+	})
 }
 
 func (s *SearchComponent) View() string {
@@ -174,12 +198,12 @@ func (s *SearchComponent) View() string {
 		Width(s.width).
 		Render(fmt.Sprintf("Cached: %d  |  Last search: %v", len(s.cache), s.lastSearchDuration))
 
-	// Tip/fun fact
+	// Rotating tip
 	tip := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#00ADD8")).
 		Italic(true).
 		Width(s.width).
-		Render("Tip: Use Tab to load more results!")
+		Render(s.tips[s.currentTipIndex])
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -214,7 +238,7 @@ func (s *SearchComponent) GetCurrentQuery() string {
 }
 
 func (s *SearchComponent) SearchWithQuery(query string) ([]types.Video, error) {
-	return s.searchWithYtDlp(query)
+	return services.SearchYouTube(query, s.config.GetSearchLimit())
 }
 
 func (s *SearchComponent) searchVideos(query string) tea.Cmd {
@@ -273,90 +297,8 @@ func (s *SearchComponent) addRecentSearch(query string) {
 }
 
 func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
-	// Check if yt-dlp is available
-	if err := utils.CheckCommandExists("yt-dlp"); err != nil {
-		return nil, errors.NewYTDlpError("yt-dlp", err)
-	}
-
-	// Use yt-dlp to search for videos
-	cmd := exec.Command("yt-dlp",
-		"--dump-json",
-		"--no-playlist",
-		"--flat-playlist",
-		"--max-downloads", fmt.Sprintf("%d", constants.MaxSearchResults),
-		"--no-warnings",
-		"--quiet",
-		"--no-check-certificates",
-		"--no-cache-dir",
-		"--extractor-args", "youtube:skip=hls,dash",
-		fmt.Sprintf("ytsearch%d:%s", constants.MaxSearchResults, query),
-	)
-
-	// Shorter timeout for faster failure
-	ctx, cancel := context.WithTimeout(context.Background(), constants.SearchTimeout*time.Second)
-	defer cancel()
-	cmd = exec.CommandContext(ctx, cmd.Path, cmd.Args[1:]...)
-
-	output, err := cmd.Output()
-	if err != nil {
-		// Try with even fewer results and different approach
-		cmd = exec.Command("yt-dlp",
-			"--dump-json",
-			"--no-playlist",
-			"--max-downloads", "5",
-			"--no-warnings",
-			"--quiet",
-			"--no-check-certificates",
-			"--no-cache-dir",
-			fmt.Sprintf("ytsearch5:%s", query),
-		)
-
-		ctx2, cancel2 := context.WithTimeout(context.Background(), constants.FallbackTimeout*time.Second)
-		defer cancel2()
-		cmd = exec.CommandContext(ctx2, cmd.Path, cmd.Args[1:]...)
-
-		output, err = cmd.Output()
-		if err != nil {
-			return nil, errors.NewYTDlpError("search", err)
-		}
-	}
-
-	// Parse the JSON output
-	var videos []types.Video
-	lines := utils.FastSplit(utils.FastTrim(string(output)), "\n")
-
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-
-		var videoData map[string]interface{}
-		if err := json.Unmarshal([]byte(line), &videoData); err != nil {
-			continue // Skip invalid JSON lines
-		}
-
-		// Extract essential fields
-		video := types.Video{
-			Title:       utils.SafeGetString(videoData, "title"),
-			Author:      utils.SafeGetString(videoData, "uploader"),
-			Duration:    utils.FormatDuration(utils.SafeGetInt(videoData, "duration")),
-			Views:       utils.FormatViews(utils.SafeGetInt(videoData, "view_count")),
-			URL:         utils.SafeGetString(videoData, "webpage_url"),
-			Thumbnail:   utils.SafeGetString(videoData, "thumbnail"),
-			Description: utils.SafeGetString(videoData, "description"),
-		}
-
-		// Only add videos with valid URLs and titles
-		if video.URL != "" && video.Title != "" {
-			videos = append(videos, video)
-		}
-	}
-
-	if len(videos) == 0 {
-		return nil, errors.NewSearchError(query, fmt.Errorf("no videos found"))
-	}
-
-	return videos, nil
+	// Use the new YouTube scraper instead of yt-dlp
+	return services.SearchYouTube(query, s.config.GetSearchLimit())
 }
 
 // ClearCache clears the search cache
