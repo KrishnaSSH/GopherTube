@@ -147,7 +147,6 @@ GopherTube/
 
 [![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)](LICENSE)
 
-[GPL v3](https://www.gnu.org/licenses/gpl-3.0). See [LICENSE](LICENSE).
 
 ---
 
