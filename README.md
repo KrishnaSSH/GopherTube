@@ -20,22 +20,22 @@ A simple terminal YouTube client for searching and watching videos using [yt-dlp
 
 ## Overview
 
-GopherTube is a terminal-based YouTube client. It uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to search YouTube and [mpv](https://mpv.io/) to play videos. The UI is built with [Go](https://golang.org/) and [Bubble Tea](https://github.com/charmbracelet/bubbletea), and is fully keyboard-driven.
+GopherTube is a terminal-based YouTube client. It uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to search YouTube and [mpv](https://mpv.io/) to play videos. The UI is built with Go and Bubble Tea, and is fully keyboard-driven.
 
 ## Features
 
 - Search YouTube with [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 - Play videos with [mpv](https://mpv.io/)
-- Minimal terminal UI ([Bubble Tea](https://github.com/charmbracelet/bubbletea))
+- Minimal terminal UI (Bubble Tea)
 - Keyboard navigation (arrows, Enter, Tab, Esc, g/G)
 - Spinner/loading indicator when opening videos
-- [YAML](https://yaml.org/) config for paths and settings
+- YAML config for paths and settings
 
 ---
 
 ## Prerequisites
 
-- [Go 1.21+](https://golang.org/dl/)
+- Go 1.21+
 - [mpv](https://mpv.io/) (media player)
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) (YouTube downloader)
 
@@ -57,6 +57,12 @@ sudo pacman -S mpv yt-dlp
 
 ## Installation
 
+**Quick Install (One-liner):**
+```bash
+curl -sSL https://raw.githubusercontent.com/KrishnaSSH/GopherTube/main/install.sh | bash
+```
+
+**Manual Installation:**
 ```bash
 git clone https://github.com/KrishnaSSH/GopherTube.git
 cd GopherTube
@@ -64,7 +70,7 @@ go build -o gophertube
 ./gophertube
 ```
 
-Or use the [Makefile](Makefile):
+Or use the Makefile:
 
 ```bash
 make install # Install binary and man page
@@ -144,4 +150,4 @@ GopherTube/
 
 ## Contributing
 
-PRs and issues welcome. See [GitHub Issues](https://github.com/KrishnaSSH/GopherTube/issues) and [Pull Requests](https://github.com/KrishnaSSH/GopherTube/pulls). 
+PRs and issues welcome. 
