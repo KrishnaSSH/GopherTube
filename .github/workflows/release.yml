@@ -39,7 +39,7 @@ jobs:
           cp gophertube pkg-deb/usr/local/bin/
           fpm -s dir -t deb -n gophertube -v "$VERSION" \
             --description "Terminal YouTube client written in Go" \
-            --maintainer "GopherTube Maintainer <noreply@example.com>" \
+            --maintainer "KrishnaSSH <krishna.pytech@gmail.com>" \
             -C pkg-deb .
           mv gophertube*.deb gophertube-${VERSION}-amd64.deb
 
@@ -49,7 +49,7 @@ jobs:
           cp gophertube pkg-rpm/usr/local/bin/
           fpm -s dir -t rpm -n gophertube -v "$VERSION" \
             --description "Terminal YouTube client written in Go" \
-            --maintainer "GopherTube Maintainer <noreply@example.com>" \
+            --maintainer "KrishnaSSH <krishna.pytech@gmail.com>" \
             -C pkg-rpm .
           mv gophertube*.rpm gophertube-${VERSION}-amd64.rpm
 
