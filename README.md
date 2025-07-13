@@ -22,6 +22,8 @@ A simple terminal YouTube client for searching and watching videos using [yt-dlp
 
 GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube website to search YouTube anduses [mpv](https://mpv.io/) to play videos. The UI is built with Go and Bubble Tea, and is fully keyboard-driven.
 
+![Demo](.assets/demo.png)
+
 ## Features
 
 - **Fast YouTube search** (scrapes YouTube directly, no API key needed)
