@@ -5,8 +5,8 @@ const (
 	// Video playback
 	DefaultVideoQuality     = "best[height<=1080]/best"
 	FallbackQuality         = "best"
-	PlaybackTimeout         = 10 // Timeout for video URL extraction
-	FallbackPlaybackTimeout = 8
+	PlaybackTimeout         = 30 // Timeout for video URL extraction
+	FallbackPlaybackTimeout = 20
 )
 
 // Messages
