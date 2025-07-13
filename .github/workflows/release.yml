@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build-and-package:
     runs-on: ubuntu-latest
@@ -15,6 +18,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+
+      - name: Set version variable (strip v prefix)
+        id: vars
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
 
       - name: Build binary (linux amd64)
         run: |
@@ -30,32 +37,32 @@ jobs:
         run: |
           mkdir -p pkg-deb/usr/local/bin
           cp gophertube pkg-deb/usr/local/bin/
-          fpm -s dir -t deb -n gophertube -v "${{ github.ref_name }}" \
+          fpm -s dir -t deb -n gophertube -v "$VERSION" \
             --description "Terminal YouTube client written in Go" \
             --maintainer "GopherTube Maintainer <noreply@example.com>" \
             -C pkg-deb .
-          mv gophertube*.deb gophertube-${{ github.ref_name }}-amd64.deb
+          mv gophertube*.deb gophertube-${VERSION}-amd64.deb
 
       - name: Create .rpm package
         run: |
           mkdir -p pkg-rpm/usr/local/bin
           cp gophertube pkg-rpm/usr/local/bin/
-          fpm -s dir -t rpm -n gophertube -v "${{ github.ref_name }}" \
+          fpm -s dir -t rpm -n gophertube -v "$VERSION" \
             --description "Terminal YouTube client written in Go" \
             --maintainer "GopherTube Maintainer <noreply@example.com>" \
             -C pkg-rpm .
-          mv gophertube*.rpm gophertube-${{ github.ref_name }}-amd64.rpm
+          mv gophertube*.rpm gophertube-${VERSION}-amd64.rpm
 
       - name: Upload .deb package
         uses: softprops/action-gh-release@v2
         with:
-          files: gophertube-${{ github.ref_name }}-amd64.deb
+          files: gophertube-${{ env.VERSION }}-amd64.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload .rpm package
         uses: softprops/action-gh-release@v2
         with:
-          files: gophertube-${{ github.ref_name }}-amd64.rpm
+          files: gophertube-${{ env.VERSION }}-amd64.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
