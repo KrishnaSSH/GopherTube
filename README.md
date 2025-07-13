@@ -67,7 +67,6 @@ go build -o gophertube
 Or use the [Makefile](Makefile):
 
 ```bash
-make build   # Build the binary
 make install # Install binary and man page
 ```
 
@@ -78,7 +77,7 @@ make install # Install binary and man page
 - Start the app: `./gophertube`
 - Type a search and press Enter
 - Use ↑/↓ to move, Enter to play, Tab to load more, Esc to go back
-- Spinner shows while video loads, then [mpv](https://mpv.io/) opens
+- Spinner shows while video loads, then mpv opens
 
 ### Keyboard Shortcuts
 
@@ -105,7 +104,7 @@ download_path: "~/Videos/gophertube"
 search_limit: 8
 ```
 
-See [config/gophertube.yaml.example](config/gophertube.yaml.example) for the full template.
+See [config example](config/gophertube.yaml.example) for the full template.
 
 ---
 
