@@ -14,7 +14,7 @@
 [![PRs](https://img.shields.io/github/issues-pr/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/pulls)
 [![Stars](https://img.shields.io/github/stars/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/stargazers)
 
-A modern terminal user interface for searching and watching YouTube videos with robust performance using yt-dlp and mpv.
+A modern terminal user interface for searching and watching YouTube videos using yt-dlp and mpv.
 
 [![GopherTube CLI](https://img.shields.io/badge/GopherTube-CLI-00ADD8?style=for-the-badge&logo=terminal&logoColor=white)](https://github.com/KrishnaSSH/GopherTube)
 
@@ -22,25 +22,24 @@ A modern terminal user interface for searching and watching YouTube videos with 
 
 ## Overview
 
-GopherTube is a high-performance terminal-based YouTube client that uses yt-dlp for both searching and playback. Built with Go and Bubble Tea, it provides a smooth, responsive experience for browsing and watching YouTube content directly from your terminal.
+GopherTube is a terminal-based YouTube client that uses yt-dlp for searching and mpv for playback. Built with Go and Bubble Tea, it provides a clean, responsive experience for browsing and watching YouTube content directly from your terminal.
 
 ## Key Features
 
-- **Robust YouTube search** using yt-dlp
-- **Seamless video playback** with mpv media player
-- **Responsive terminal UI** with Swiss design principles
-- **Keyboard-driven navigation** for efficient browsing
-- **Smart caching** for improved performance
-- **YAML configuration** for easy customization
+- **YouTube search** using yt-dlp
+- **Video playback** with mpv media player
+- **Terminal UI** with clean design
+- **Keyboard navigation** for efficient browsing
+- **Loading indicators** with spinning animations
+- **YAML configuration** for customization
 - **Cross-platform support** for Linux and macOS
 
-## Performance Highlights
+## Recent Updates
 
-- **Reliable search results** via yt-dlp
-- **Optimized video loading** with intelligent format selection
-- **Memory-efficient caching** system
-- **Timeout management** for reliable operation
-- **Background processing** for smooth UI experience
+- **Fixed video playback** - Corrected mpv command-line options
+- **Added loading spinners** - Visual feedback when selecting videos
+- **Improved navigation** - Better scrolling and selection behavior
+- **Cleaned up code** - Removed unnecessary comments and optimizations
 
 ---
 
@@ -83,9 +82,72 @@ sudo pacman -S mpv yt-dlp
 
 ---
 
-## Configuration
+## Installation
 
-[![Config](https://img.shields.io/badge/Config-YAML-yellow?style=flat-square)](https://yaml.org/)
+### From Source
+
+```bash
+# Clone the repository
+git clone https://github.com/KrishnaSSH/GopherTube.git
+cd GopherTube
+
+# Build the application
+go build -o gophertube
+
+# Run the application
+./gophertube
+```
+
+### Using Make
+
+```bash
+# Build
+make build
+
+# Install
+make install
+```
+
+---
+
+## Usage
+
+### Basic Usage
+
+1. **Start the application:**
+   ```bash
+   ./gophertube
+   ```
+
+2. **Search for videos:**
+   - Type your search query
+   - Press Enter to search
+
+3. **Navigate results:**
+   - Use ↑/↓ arrows to move through videos
+   - Press Enter to play a video
+   - Press Tab to load more videos
+   - Press Esc to go back to search
+
+4. **Play videos:**
+   - Select a video and press Enter
+   - The video will open in mpv
+   - A spinner shows while the video loads
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Search / Play selected video |
+| `↑/↓` | Navigate video list |
+| `Tab` | Load more videos |
+| `g` | Go to first video |
+| `G` | Go to last video |
+| `Esc` | Go back / Quit |
+
+---
+
+## Configuration
 
 Create a configuration file at `~/.config/gophertube/gophertube.yaml`:
 
@@ -96,7 +158,7 @@ mpv_path: "mpv"
 # Path to yt-dlp executable
 ytdlp_path: "yt-dlp"
 
-# Default video quality for downloads
+# Default video quality
 video_quality: "best[height<=1080]/best"
 
 # Download directory for videos
@@ -120,8 +182,6 @@ search_limit: 8
 
 ## Project Structure
 
-[![Structure](https://img.shields.io/badge/Structure-Organized-lightgrey?style=flat-square)](https://github.com/KrishnaSSH/GopherTube)
-
 ```
 GopherTube/
 ├── main.go                    # Application entry point
@@ -139,51 +199,37 @@ GopherTube/
 │
 └── internal/                   # Core application code
     ├── app/
-    │   └── app.go              # Main application logic and state management
+    │   └── app.go              # Main application logic
     │
     ├── components/              # UI components
     │   ├── search.go            # Search input component
-    │   ├── video_list.go        # Video list display component
+    │   ├── video_list.go        # Video list display
     │   ├── status_bar.go        # Status bar component
-    │   └── types.go             # Component-specific types
+    │   └── types.go             # Component types
     │
-    ├── services/                # Business logic services
+    ├── services/                # Business logic
     │   ├── config.go            # Configuration management
-    │   ├── mpv.go               # Media player service
+    │   └── mpv.go               # Media player service
     │
     ├── types/                   # Shared data types
     │   └── types.go             # Core data structures
     │
     ├── interfaces/              # Interface definitions
-    │   └── interfaces.go        # Service and component interfaces
+    │   └── interfaces.go        # Service interfaces
     │
     ├── constants/               # Application constants
-    │   └── constants.go         # Version, paths, and settings
+    │   └── constants.go         # Settings and constants
     │
     ├── utils/                   # Utility functions
-    │   └── utils.go             # Helper functions and utilities
+    │   └── utils.go             # Helper functions
     │
     └── errors/                  # Error handling
-        └── errors.go            # Custom error types and handling
+        └── errors.go            # Custom error types
 ```
-
-### Architecture Overview
-
-- **`main.go`** - Application entry point and initialization
-- **`internal/app/`** - Core application logic and state management
-- **`internal/components/`** - Bubble Tea UI components
-- **`internal/services/`** - Business logic and external integrations
-- **`internal/types/`** - Shared data structures and types
-- **`internal/interfaces/`** - Interface definitions for loose coupling
-- **`internal/constants/`** - Application-wide constants and settings
-- **`internal/utils/`** - Helper functions and utilities
-- **`internal/errors/`** - Custom error types and error handling
 
 ---
 
 ## Development
-
-[![Development](https://img.shields.io/badge/Development-Active-brightgreen?style=flat-square)](https://github.com/KrishnaSSH/GopherTube)
 
 ### Building
 
@@ -210,26 +256,16 @@ make install-man
 
 ### Development Tools
 
-This project uses modern Go development practices and frameworks:
+This project uses modern Go development practices:
 
 [![Bubble Tea](https://img.shields.io/badge/Bubble%20Tea-TUI%20Framework-blue?style=flat-square)](https://github.com/charmbracelet/bubbletea)
 [![Lip Gloss](https://img.shields.io/badge/Lip%20Gloss-Styling-pink?style=flat-square)](https://github.com/charmbracelet/lipgloss)
 [![Cobra](https://img.shields.io/badge/Cobra-CLI%20Commands-green?style=flat-square)](https://github.com/spf13/cobra)
 [![Viper](https://img.shields.io/badge/Viper-Config%20Management-purple?style=flat-square)](https://github.com/spf13/viper)
 
-### Code Style
-
-- Follows Go best practices and conventions
-- Uses interfaces for loose coupling
-- Implements proper error handling
-- Includes comprehensive documentation
-- Maintains clean separation of concerns
-
 ---
 
 ## Troubleshooting
-
-[![Support](https://img.shields.io/badge/Support-Help-orange?style=flat-square)](https://github.com/KrishnaSSH/GopherTube/issues)
 
 ### Common Issues
 
