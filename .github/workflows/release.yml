@@ -1,0 +1,61 @@
+name: Release Packages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build binary (linux amd64)
+        run: |
+          go build -o gophertube main.go
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev build-essential
+          sudo gem install --no-document fpm
+
+      - name: Create .deb package
+        run: |
+          mkdir -p pkg-deb/usr/local/bin
+          cp gophertube pkg-deb/usr/local/bin/
+          fpm -s dir -t deb -n gophertube -v "${{ github.ref_name }}" \
+            --description "Terminal YouTube client written in Go" \
+            --maintainer "GopherTube Maintainer <noreply@example.com>" \
+            -C pkg-deb .
+          mv gophertube*.deb gophertube-${{ github.ref_name }}-amd64.deb
+
+      - name: Create .rpm package
+        run: |
+          mkdir -p pkg-rpm/usr/local/bin
+          cp gophertube pkg-rpm/usr/local/bin/
+          fpm -s dir -t rpm -n gophertube -v "${{ github.ref_name }}" \
+            --description "Terminal YouTube client written in Go" \
+            --maintainer "GopherTube Maintainer <noreply@example.com>" \
+            -C pkg-rpm .
+          mv gophertube*.rpm gophertube-${{ github.ref_name }}-amd64.rpm
+
+      - name: Upload .deb package
+        uses: softprops/action-gh-release@v2
+        with:
+          files: gophertube-${{ github.ref_name }}-amd64.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload .rpm package
+        uses: softprops/action-gh-release@v2
+        with:
+          files: gophertube-${{ github.ref_name }}-amd64.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
