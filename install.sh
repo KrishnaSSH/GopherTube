@@ -311,6 +311,9 @@ install_ytdlp() {
     
     print_status "Downloading yt-dlp from: $YTDLP_URL"
     
+    # Save current directory
+    local current_dir=$(pwd)
+    
     # Download and install
     cd /tmp
     if curl -L "$YTDLP_URL" -o yt-dlp; then
@@ -320,8 +323,12 @@ install_ytdlp() {
         print_success "yt-dlp installed successfully"
     else
         print_error "Failed to download yt-dlp"
+        cd "$current_dir"
         return 1
     fi
+    
+    # Return to original directory
+    cd "$current_dir"
 }
 
 # Clone and build GopherTube
