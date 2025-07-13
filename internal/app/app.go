@@ -116,11 +116,16 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case components.VideoSelectedMsg:
 		return a, a.playVideo(msg.Video)
 
+	case components.VideoPlayedMsg:
+		// Video playback completed, clear playing state
+		return a, nil
+
 	case components.ErrorMsg:
 		a.state.ErrorMessage = msg.Error
 		a.state.IsLoading = false
 		// Reset loading state in video list if it's loading
 		a.videoList.ResetLoading()
+		a.videoList.ResetPlaying() // Also reset playing state
 		a.statusBar.SetMessage("Error: " + msg.Error)
 		return a, nil
 
@@ -139,6 +144,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.searchComponent = searchModel.(*components.SearchComponent)
 		return a, cmd
 	case ViewVideoList:
+		// Update video list for all messages, not just key events
 		videoListModel, cmd := a.videoList.Update(msg)
 		a.videoList = videoListModel.(*components.VideoList)
 		return a, cmd
@@ -164,8 +170,9 @@ func (a *App) View() string {
 		view = a.videoList.View()
 	}
 
+	// Only add status bar if it has content and we're not in video list view
 	statusBar := a.statusBar.View()
-	if statusBar != "" {
+	if statusBar != "" && a.state.CurrentView != ViewVideoList {
 		return lipgloss.NewStyle().Padding(2, 4).Render(lipgloss.JoinVertical(lipgloss.Left, view, statusBar))
 	}
 	return lipgloss.NewStyle().Padding(2, 4).Render(view)

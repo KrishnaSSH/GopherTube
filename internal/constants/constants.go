@@ -14,9 +14,9 @@ const (
 	DefaultMargin  = 4
 
 	// Search
-	MaxSearchResults = 8 // Reduced from 10 for speed
-	SearchTimeout    = 8 // Reduced from 30 seconds
-	FallbackTimeout  = 5 // Fallback timeout for search
+	MaxSearchResults = 8
+	SearchTimeout    = 8
+	FallbackTimeout  = 5
 
 	// Video playback
 	DefaultVideoQuality     = "best[height<=1080]/best"
@@ -51,16 +51,4 @@ const (
 	ConfigFileName = "gophertube.yaml"
 	ConfigDir      = "$HOME/.config/gophertube"
 	DownloadsDir   = "~/Videos/gophertube"
-)
-
-// Performance settings
-const (
-	// Cache settings
-	MaxCacheSize = 100 // Maximum number of cached search results
-
-	// yt-dlp optimization flags
-	YTDlpOptimizedFlags = "--no-warnings --quiet --no-check-certificates --no-cache-dir"
-
-	// MPV optimization flags
-	MPVOptimizedFlags = "--no-config --no-cache --no-ytdl --no-video-title-show"
 )

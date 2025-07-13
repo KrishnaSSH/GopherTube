@@ -120,7 +120,6 @@ func Debounce(fn func(), delay time.Duration) func() {
 	}
 }
 
-// Performance monitoring utilities
 type PerformanceTimer struct {
 	start time.Time
 	name  string
@@ -146,14 +145,14 @@ func (pt *PerformanceTimer) StopTimerWithLog() time.Duration {
 	return duration
 }
 
-// Optimized string processing
-func FastSplit(s string, sep string) []string {
+// FastSplit splits a string by delimiter
+func FastSplit(s, sep string) []string {
 	if sep == "" {
 		return []string{s}
 	}
 
-	// Pre-allocate slice for better performance
-	result := make([]string, 0, strings.Count(s, sep)+1)
+	// Pre-allocate slice
+	result := make([]string, 0, len(s)/len(sep)+1)
 
 	start := 0
 	for i := 0; i < len(s)-len(sep)+1; i++ {

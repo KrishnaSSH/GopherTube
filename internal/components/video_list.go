@@ -7,35 +7,28 @@ import (
 	"gophertube/internal/constants"
 	"gophertube/internal/types"
 
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type VideoList struct {
-	list         list.Model
 	videos       []types.Video
 	width        int
 	height       int
 	selected     int
 	isLoading    bool
+	isPlaying    bool // New state for video playback
 	spinner      spinner.Model
 	scrollOffset int // Track scroll position
 }
 
 func NewVideoList() *VideoList {
-	l := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
-	l.SetShowHelp(false)
-	l.SetShowTitle(false)
-	l.SetShowStatusBar(false)
-
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return &VideoList{
-		list:         l,
 		videos:       []types.Video{},
 		width:        80,
 		height:       20,
@@ -49,41 +42,47 @@ func (v *VideoList) Init() tea.Cmd {
 }
 
 func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	availableHeight := v.height - 5
+	maxIndex := len(v.videos) - 1
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
 			if len(v.videos) > 0 && v.selected < len(v.videos) {
-				return v, func() tea.Msg {
-					return VideoSelectedMsg{Video: v.videos[v.selected]}
-				}
+				v.isPlaying = true // Set playing state
+				return v, tea.Batch(
+					v.spinner.Tick,
+					func() tea.Msg {
+						return VideoSelectedMsg{Video: v.videos[v.selected]}
+					},
+				)
 			}
 		case "j", "down":
-			if v.selected < len(v.videos)-1 {
+			if v.selected < maxIndex {
 				v.selected++
-				// Auto-scroll if selection goes below visible area
-				visibleHeight := v.height - 5 // Account for title, spacing, and help
-				if v.selected >= v.scrollOffset+visibleHeight {
-					v.scrollOffset = v.selected - visibleHeight + 1
+				// Only scroll if selected is now below the visible window
+				if v.selected >= v.scrollOffset+availableHeight {
+					v.scrollOffset++
 				}
 			}
 		case "k", "up":
 			if v.selected > 0 {
 				v.selected--
-				// Auto-scroll if selection goes above visible area
+				// Only scroll if selected is now above the visible window
 				if v.selected < v.scrollOffset {
-					v.scrollOffset = v.selected
+					v.scrollOffset--
 				}
 			}
 		case "g":
 			v.selected = 0
 			v.scrollOffset = 0
 		case "G":
-			v.selected = len(v.videos) - 1
-			// Scroll to show the last item
-			visibleHeight := v.height - 5
-			if v.selected >= visibleHeight {
-				v.scrollOffset = v.selected - visibleHeight + 1
+			v.selected = maxIndex
+			// Place selected at the bottom of the window if possible
+			v.scrollOffset = maxIndex - availableHeight + 1
+			if v.scrollOffset < 0 {
+				v.scrollOffset = 0
 			}
 		case "tab":
 			if len(v.videos) > 0 && !v.isLoading {
@@ -101,7 +100,7 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case spinner.TickMsg:
-		if v.isLoading {
+		if v.isLoading || v.isPlaying {
 			var cmd tea.Cmd
 			v.spinner, cmd = v.spinner.Update(msg)
 			return v, cmd
@@ -113,11 +112,32 @@ func (v *VideoList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return ErrorMsg{Error: "Loading timeout - try again"}
 			}
 		}
+	case VideoPlayedMsg:
+		v.isPlaying = false // Clear playing state
+		return v, nil
 	}
 
-	var cmd tea.Cmd
-	v.list, cmd = v.list.Update(msg)
-	return v, cmd
+	// Clamp selected
+	if v.selected < 0 {
+		v.selected = 0
+	}
+	if v.selected > maxIndex {
+		v.selected = maxIndex
+	}
+
+	// Clamp scrollOffset so the window never goes past the end
+	maxScroll := 0
+	if availableHeight < len(v.videos) {
+		maxScroll = len(v.videos) - availableHeight
+	}
+	if v.scrollOffset > maxScroll {
+		v.scrollOffset = maxScroll
+	}
+	if v.scrollOffset < 0 {
+		v.scrollOffset = 0
+	}
+
+	return v, nil
 }
 
 func (v *VideoList) View() string {
@@ -135,53 +155,51 @@ func (v *VideoList) View() string {
 		Width(v.width).
 		Render("Results")
 
-	var videoItems []string
-	for i, video := range v.videos {
-		videoItems = append(videoItems, v.renderVideoItem(video, i == v.selected))
+	availableHeight := v.height - 5
+	maxScroll := 0
+	if availableHeight < len(v.videos) {
+		maxScroll = len(v.videos) - availableHeight
 	}
-
-	// Calculate visible area
-	visibleHeight := v.height - 5 // Account for title, spacing, and help
-
-	// Apply scroll offset and limit to visible height
-	startIndex := v.scrollOffset
-	endIndex := startIndex + visibleHeight
-	if endIndex > len(videoItems) {
-		endIndex = len(videoItems)
+	if v.scrollOffset > maxScroll {
+		v.scrollOffset = maxScroll
 	}
-
-	// Ensure we don't go out of bounds
-	if startIndex >= len(videoItems) {
-		startIndex = 0
+	if v.scrollOffset < 0 {
 		v.scrollOffset = 0
 	}
 
-	// Get the visible portion of the list
-	if startIndex < len(videoItems) {
-		videoItems = videoItems[startIndex:endIndex]
-	} else {
-		videoItems = []string{}
+	startIndex := v.scrollOffset
+	endIndex := startIndex + availableHeight
+	if endIndex > len(v.videos) {
+		endIndex = len(v.videos)
 	}
 
-	// Add scroll indicators if needed
-	if v.scrollOffset > 0 {
-		// Show indicator that there are items above
+	var lines []string
+	if startIndex > 0 {
 		scrollUpIndicator := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
 			Align(lipgloss.Center).
 			Width(v.width).
 			Render("↑ More videos above")
-		videoItems = append([]string{scrollUpIndicator}, videoItems...)
+		lines = append(lines, scrollUpIndicator)
+		availableHeight--
 	}
-
-	if v.scrollOffset+visibleHeight < len(v.videos) {
-		// Show indicator that there are items below
+	for i := startIndex; i < endIndex && len(lines) < availableHeight; i++ {
+		if i < len(v.videos) {
+			// Add spinner to the left if this is the selected item and we're playing
+			itemContent := v.renderVideoItem(v.videos[i], i == v.selected)
+			if i == v.selected && v.isPlaying {
+				itemContent = v.spinner.View() + " " + itemContent
+			}
+			lines = append(lines, itemContent)
+		}
+	}
+	if endIndex < len(v.videos) && len(lines) < availableHeight {
 		scrollDownIndicator := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
 			Align(lipgloss.Center).
 			Width(v.width).
 			Render("↓ More videos below")
-		videoItems = append(videoItems, scrollDownIndicator)
+		lines = append(lines, scrollDownIndicator)
 	}
 
 	var content string
@@ -191,7 +209,7 @@ func (v *VideoList) View() string {
 			Width(v.width).
 			Render(v.spinner.View() + " " + constants.LoadingMoreMessage)
 	} else {
-		content = lipgloss.JoinVertical(lipgloss.Left, videoItems...)
+		content = lipgloss.JoinVertical(lipgloss.Left, lines...)
 	}
 
 	help := lipgloss.NewStyle().
@@ -216,13 +234,10 @@ func (v *VideoList) renderVideoItem(video types.Video, selected bool) string {
 	if selected {
 		titleStyle = titleStyle.Bold(true).Underline(true)
 	}
-	title := titleStyle.Render(lipgloss.NewStyle().MaxWidth(v.width - 2).Render(video.Title))
-
-	// Author and duration (dimmed)
-	authorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Faint(true)
-	author := authorStyle.Render(fmt.Sprintf("%s • %s", video.Author, video.Duration))
-
-	return lipgloss.JoinVertical(lipgloss.Left, title, author)
+	// Render both title and author/duration on the same line
+	return titleStyle.Render(video.Title) + "  " +
+		lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Faint(true).
+			Render(fmt.Sprintf("%s • %s", video.Author, video.Duration))
 }
 
 func (v *VideoList) SetSize(width, height int) {
@@ -238,6 +253,10 @@ func (v *VideoList) SetVideos(videos []types.Video) {
 
 func (v *VideoList) ResetLoading() {
 	v.isLoading = false
+}
+
+func (v *VideoList) ResetPlaying() {
+	v.isPlaying = false
 }
 
 func (v *VideoList) AppendVideos(videos []types.Video) {

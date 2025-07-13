@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,14 +22,16 @@ import (
 )
 
 type SearchComponent struct {
-	textInput textinput.Model
-	spinner   spinner.Model
-	width     int
-	height    int
-	isLoading bool
-	query     string
-	cache     map[string][]types.Video
-	cacheMux  sync.RWMutex
+	textInput          textinput.Model
+	spinner            spinner.Model
+	width              int
+	height             int
+	isLoading          bool
+	query              string
+	cache              map[string][]types.Video
+	cacheMux           sync.RWMutex
+	recentSearches     []string
+	lastSearchDuration time.Duration
 }
 
 type SearchResultMsg struct {
@@ -48,11 +51,12 @@ func NewSearchComponent(config *services.Config) *SearchComponent {
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return &SearchComponent{
-		textInput: ti,
-		spinner:   s,
-		width:     80,
-		height:    20,
-		cache:     make(map[string][]types.Video),
+		textInput:      ti,
+		spinner:        s,
+		width:          80,
+		height:         20,
+		cache:          make(map[string][]types.Video),
+		recentSearches: []string{},
 	}
 }
 
@@ -90,12 +94,42 @@ func (s *SearchComponent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (s *SearchComponent) View() string {
+	// Logo and branding
+	logo := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00ADD8")).
+		Bold(true).
+		Render(`
+   _____             _                 _______    _          
+  / ____|           | |               |__   __|  | |         
+ | |  __  ___  _ __ | |__   ___ _ __     | |_   _| |__   ___ 
+ | | |_ |/ _ \| '_ \| '_ \ / _ \ '__|    | | | | | '_ \ / _ \
+ | |__| | (_) | |_) | | | |  __/ |       | | |_| | |_) |  __/
+  \_____|\___/| .__/|_| |_|\___|_|       |_|\__,_|_.__/ \___|
+               | |                                            
+               |_|                                            `)
+
+	// Title
 	title := lipgloss.NewStyle().
 		Bold(true).
+		Foreground(lipgloss.Color("#00ADD8")).
 		Align(lipgloss.Left).
 		Width(s.width).
 		Render("GopherTube")
 
+	// Tagline
+	tagline := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Align(lipgloss.Left).
+		Width(s.width).
+		Render("Fast, private, and keyboard-driven YouTube search & playback")
+
+	// Divider
+	divider := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Width(s.width).
+		Render(strings.Repeat("─", s.width))
+
+	// Search box
 	searchBox := lipgloss.NewStyle().
 		Padding(0, 2).
 		Width(s.width).
@@ -112,19 +146,56 @@ func (s *SearchComponent) View() string {
 		content = searchBox
 	}
 
+	// Help text
 	help := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#888888")).
 		Align(lipgloss.Left).
 		Width(s.width).
 		Render("Enter: Search  |  Ctrl+C or Esc: Quit")
 
+	// Recent searches (if any)
+	recent := ""
+	if len(s.recentSearches) > 0 {
+		recent = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888")).
+			Width(s.width).
+			Render("Recent: " + strings.Join(s.recentSearches, ", "))
+	}
+
+	// Example queries
+	examples := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Width(s.width).
+		Render("Try: lofi hip hop  |  mental outlaw  |  go programming  |  linux tutorial  |  cat videos")
+
+	// Stats
+	stats := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Width(s.width).
+		Render(fmt.Sprintf("Cached: %d  |  Last search: %v", len(s.cache), s.lastSearchDuration))
+
+	// Tip/fun fact
+	tip := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00ADD8")).
+		Italic(true).
+		Width(s.width).
+		Render("Tip: Use Tab to load more results!")
+
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
+		logo,
 		title,
-		"",
+		tagline,
+		divider,
 		content,
 		"",
 		help,
+		divider,
+		recent,
+		examples,
+		stats,
+		tip,
+		divider,
 	)
 }
 
@@ -148,16 +219,23 @@ func (s *SearchComponent) SearchWithQuery(query string) ([]types.Video, error) {
 
 func (s *SearchComponent) searchVideos(query string) tea.Cmd {
 	return func() tea.Msg {
+		start := time.Now()
+
 		// Check cache first
 		s.cacheMux.RLock()
 		if cached, exists := s.cache[query]; exists {
 			s.cacheMux.RUnlock()
+			s.lastSearchDuration = time.Since(start)
+			s.addRecentSearch(query)
 			return SearchResultMsg{Videos: cached}
 		}
 		s.cacheMux.RUnlock()
 
 		// Use yt-dlp to search for videos
 		videos, err := s.searchWithYtDlp(query)
+		s.lastSearchDuration = time.Since(start)
+		s.addRecentSearch(query)
+
 		if err != nil {
 			return SearchResultMsg{Error: err.Error()}
 		}
@@ -171,17 +249,36 @@ func (s *SearchComponent) searchVideos(query string) tea.Cmd {
 	}
 }
 
-func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
-	// Performance timer
-	timer := utils.StartTimer("ytdlp_search")
-	defer timer.StopTimerWithLog()
+func (s *SearchComponent) addRecentSearch(query string) {
+	if query == "" {
+		return
+	}
+	// Only add if not already the most recent
+	if len(s.recentSearches) > 0 && s.recentSearches[0] == query {
+		return
+	}
+	// Remove if already present elsewhere
+	for i, q := range s.recentSearches {
+		if q == query {
+			s.recentSearches = append(s.recentSearches[:i], s.recentSearches[i+1:]...)
+			break
+		}
+	}
+	// Prepend
+	s.recentSearches = append([]string{query}, s.recentSearches...)
+	// Limit to 5
+	if len(s.recentSearches) > 5 {
+		s.recentSearches = s.recentSearches[:5]
+	}
+}
 
+func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
 	// Check if yt-dlp is available
 	if err := utils.CheckCommandExists("yt-dlp"); err != nil {
 		return nil, errors.NewYTDlpError("yt-dlp", err)
 	}
 
-	// Optimized yt-dlp search with faster parameters
+	// Use yt-dlp to search for videos
 	cmd := exec.Command("yt-dlp",
 		"--dump-json",
 		"--no-playlist",
@@ -189,9 +286,9 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
 		"--max-downloads", fmt.Sprintf("%d", constants.MaxSearchResults),
 		"--no-warnings",
 		"--quiet",
-		"--no-check-certificates",                   // Skip SSL verification for speed
-		"--no-cache-dir",                            // Disable cache for faster startup
-		"--extractor-args", "youtube:skip=hls,dash", // Skip complex formats
+		"--no-check-certificates",
+		"--no-cache-dir",
+		"--extractor-args", "youtube:skip=hls,dash",
 		fmt.Sprintf("ytsearch%d:%s", constants.MaxSearchResults, query),
 	)
 
@@ -224,7 +321,7 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
 		}
 	}
 
-	// Parse the JSON output more efficiently
+	// Parse the JSON output
 	var videos []types.Video
 	lines := utils.FastSplit(utils.FastTrim(string(output)), "\n")
 
@@ -238,7 +335,7 @@ func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
 			continue // Skip invalid JSON lines
 		}
 
-		// Only extract essential fields for speed
+		// Extract essential fields
 		video := types.Video{
 			Title:       utils.SafeGetString(videoData, "title"),
 			Author:      utils.SafeGetString(videoData, "uploader"),

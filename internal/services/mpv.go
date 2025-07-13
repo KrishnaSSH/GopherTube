@@ -22,10 +22,6 @@ func NewMPVService(config *Config) *MPVService {
 }
 
 func (m *MPVService) PlayVideo(videoURL string) error {
-	// Performance timer
-	timer := utils.StartTimer("play_video")
-	defer timer.StopTimerWithLog()
-
 	// Validate URL
 	if !utils.ValidateURL(videoURL) {
 		return errors.NewPlaybackError(videoURL, fmt.Errorf("invalid URL"))
@@ -39,15 +35,15 @@ func (m *MPVService) PlayVideo(videoURL string) error {
 		return errors.NewPlaybackError(videoURL, err)
 	}
 
-	// Use optimized yt-dlp to get direct video URL with faster parameters
+	// Use yt-dlp to get direct video URL
 	cmd := exec.Command(m.config.YTDlpPath,
 		"-f", constants.DefaultVideoQuality,
 		"--get-url",
 		"--no-playlist",
 		"--no-warnings",
 		"--quiet",
-		"--no-check-certificates", // Skip SSL verification for speed
-		"--no-cache-dir",          // Disable cache for faster startup
+		"--no-check-certificates",
+		"--no-cache-dir",
 		videoURL,
 	)
 
@@ -91,13 +87,12 @@ func (m *MPVService) PlayVideo(videoURL string) error {
 		return errors.NewPlaybackError(videoURL, fmt.Errorf("no playable URL found"))
 	}
 
-	// Pass the URLs to mpv with optimized settings
+	// Pass the URLs to mpv
 	mpvArgs := append([]string{
 		"--no-config",
 		"--no-cache",
-		"--no-ytdl",             // Disable mpv's built-in yt-dlp for speed
-		"--no-video-title-show", // Hide video title overlay
-		"--geometry", "50%:50%", // Center the window
+		"--no-ytdl",
+		"--geometry=50%:50%",
 	}, urls...)
 
 	cmd = exec.Command(m.config.MPVPath, mpvArgs...)
