@@ -265,56 +265,6 @@ This project uses modern Go development practices:
 
 ---
 
-## Troubleshooting
-
-### Common Issues
-
-#### Search Problems
-
-1. **"Search not working"**
-   - Check your internet connection
-   - Verify yt-dlp is installed and in your PATH
-   - Try running yt-dlp manually to check for errors
-
-2. **"Slow search results"**
-   - Check your network connection
-   - Reduce the search_limit in your config
-   - Ensure your system is not under heavy load
-
-#### Playback Issues
-
-1. **"mpv not found"**
-   - Ensure mpv is installed and in your PATH
-   - Check the `mpv_path` configuration
-   - Verify mpv works from command line
-
-2. **"Video playback issues"**
-   - Ensure mpv is properly installed
-   - Check your internet connection
-   - Verify the video URL is accessible
-   - Try different video quality settings
-
-#### Performance Issues
-
-1. **"High memory usage"**
-   - Disable caching in config (if available)
-   - Reduce max search results
-   - Restart the application
-
-2. **"Slow startup"**
-   - Check network connectivity
-   - Verify all dependencies are installed
-   - Review configuration settings
-
-### Getting Help
-
-- Check the [Issues](https://github.com/KrishnaSSH/GopherTube/issues) page
-- Review the [man page](man/gophertube.1)
-- Verify your configuration file
-- Test with minimal configuration
-
----
-
 ## License
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
