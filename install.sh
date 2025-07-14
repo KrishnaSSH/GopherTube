@@ -356,24 +356,16 @@ build_gophertube() {
         return 1
     fi
     
-    print_status "Building GopherTube..."
-    
-    # Download dependencies
+    print_status "Downloading Go dependencies..."
     go mod download || print_warning "Failed to download some dependencies"
+    go mod tidy || print_warning "Failed to tidy Go modules"
     
-    # Build the application
-    go build -o gophertube main.go || {
-        print_error "Failed to build GopherTube"
+    print_status "Running make install..."
+    make install || {
+        print_error "Failed to run make install"
         return 1
     }
-    
-    if [ -f "gophertube" ]; then
-        print_success "GopherTube built successfully!"
-        chmod +x gophertube
-    else
-        print_error "Build completed but binary not found"
-        return 1
-    fi
+    print_success "GopherTube installed via make install!"
 }
 
 # Install GopherTube system-wide
@@ -457,23 +449,73 @@ main() {
     # Check for basic requirements
     if ! command_exists curl; then
         print_error "curl is required but not installed"
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
         exit 1
     fi
     
     if ! command_exists git; then
         print_error "git is required but not installed"
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
         exit 1
     fi
     
     print_status "Starting GopherTube installation..."
     
-    detect_system
-    install_go
-    install_mpv
-    install_ytdlp
-    build_gophertube
-    install_system_wide
-    test_installation
+    detect_system || {
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
+        exit 1
+    }
+    install_go || {
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
+        exit 1
+    }
+    install_mpv || {
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
+        exit 1
+    }
+    install_ytdlp || {
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
+        exit 1
+    }
+    build_gophertube || {
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
+        exit 1
+    }
+    install_system_wide || {
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
+        exit 1
+    }
+    test_installation || {
+        echo -e "\nIf this script fails, try manual installation:"
+        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
+        echo "  cd GopherTube && make install"
+        echo "If you still have issues, please report them on GitHub."
+        exit 1
+    }
     
     echo
     print_success "Installation completed successfully!"
