@@ -21,7 +21,7 @@ func NewConfig() *Config {
 		YTDlpPath:    "yt-dlp",
 		VideoQuality: "best[height<=1080]/best",
 		DownloadPath: getDefaultDownloadPath(),
-		SearchLimit:  8,
+		SearchLimit:  20, // changed from 8 to 20
 	}
 
 	// Load config from file
