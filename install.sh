@@ -388,7 +388,11 @@ install_system_wide() {
         # Copy man page if it exists
         if [ -f "man/gophertube.1" ]; then
             run_with_sudo cp man/gophertube.1 "$MAN_DIR/"
-            run_with_sudo mandb 2>/dev/null || print_warning "Failed to update man database"
+            if command_exists mandb; then
+                run_with_sudo mandb 2>/dev/null || print_warning "Failed to update man database"
+            else
+                print_warning "'mandb' not found. Installing without updating man database. Man page may not be available."
+            fi
         fi
         
         # Create config directory and copy example
