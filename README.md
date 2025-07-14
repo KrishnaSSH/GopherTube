@@ -156,4 +156,11 @@ GopherTube/
 
 ## Contributing
 
-PRs and issues welcome. 
+Interested in improving GopherTube? Whether you’ve found a bug, have an idea, or want to contribute, we’d love your help.
+
+- Check out our [CONTRIBUTING.md](CONTRIBUTING.md) for all the details.
+- If you’re not sure where to start, open an issue or ask a question—no idea is too small.
+- Pull requests, bug reports, and suggestions are all welcome.
+- Please be kind and respectful to everyone here.
+
+Thank you for supporting the project!
