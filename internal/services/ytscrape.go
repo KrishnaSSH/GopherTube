@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"gophertube/internal/types"
 	"io"
 	"net/http"
@@ -21,11 +22,11 @@ var (
 )
 
 var httpClient = &http.Client{
-	Timeout: 3 * time.Second,
+	Timeout: 10 * time.Second,
 }
 
 func SearchYouTube(query string, limit int) ([]types.Video, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	url := "https://www.youtube.com/results?search_query=" + urlQueryEscape(query)
@@ -33,25 +34,26 @@ func SearchYouTube(query string, limit int) ([]types.Video, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; GopherTube/1.0; +https://github.com/KrishnaSSH/GopherTube)")
+	// Use a modern Chrome UA
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("YouTube request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("YouTube returned non-200 status")
+		return nil, fmt.Errorf("YouTube returned non-200 status: %d", resp.StatusCode)
 	}
 
-	jsonData, err := chunkedExtractYtInitialData(resp.Body)
+	jsonData, htmlDebug, err := robustExtractYtInitialData(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ytInitialData extraction failed: %w\nFirst 2KB of HTML: %s", err, htmlDebug)
 	}
 
 	results := gjson.GetBytes(jsonData, "..videoRenderer")
 	if !results.Exists() {
-		return nil, errors.New("no videos found in YouTube search")
+		return nil, errors.New("no videos found in YouTube search (ytInitialData parsed, but no videoRenderer nodes found)")
 	}
 
 	videos := make([]types.Video, 0, limit)
@@ -97,15 +99,18 @@ func SearchYouTube(query string, limit int) ([]types.Video, error) {
 	}
 
 	if len(videos) == 0 {
-		return nil, errors.New("no videos found in YouTube search")
+		return nil, errors.New("no videos found in YouTube search (videoRenderer nodes exist, but none parsed)")
 	}
 	return videos, nil
 }
 
-// Reads in large chunks and extracts ytInitialData JSON as soon as found
-func chunkedExtractYtInitialData(r io.Reader) ([]byte, error) {
-	const chunkSize = 16 * 1024
+// Tries prefix search, then fallback to searching for ytInitialData anywhere in the HTML
+// Returns: (jsonData, htmlDebug, error)
+func robustExtractYtInitialData(r io.Reader) ([]byte, string, error) {
+	const chunkSize = 32 * 1024
+	const debugLen = 2048
 	var buf bytes.Buffer
+	var htmlDebug string
 	found := false
 	prefixIdx := -1
 	for {
@@ -113,46 +118,61 @@ func chunkedExtractYtInitialData(r io.Reader) ([]byte, error) {
 		n, err := r.Read(chunk)
 		if n > 0 {
 			buf.Write(chunk[:n])
-			if !found {
-				b := buf.Bytes()
-				prefixIdx = bytes.Index(b, []byte(ytInitialDataPrefix))
-				if prefixIdx != -1 {
-					buf.Next(prefixIdx + len(ytInitialDataPrefix))
-					found = true
+		}
+		if buf.Len() >= debugLen && htmlDebug == "" {
+			htmlDebug = string(buf.Bytes()[:debugLen])
+		}
+		if !found {
+			b := buf.Bytes()
+			prefixIdx = bytes.Index(b, []byte(ytInitialDataPrefix))
+			if prefixIdx != -1 {
+				buf.Next(prefixIdx + len(ytInitialDataPrefix))
+				found = true
+				break
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, htmlDebug, err
+		}
+	}
+	if found {
+		// Now read until suffix
+		var jsonBuf bytes.Buffer
+		for {
+			chunk := make([]byte, chunkSize)
+			n, err := r.Read(chunk)
+			if n > 0 {
+				if idx := bytes.Index(chunk[:n], []byte(ytInitialDataSuffix)); idx != -1 {
+					jsonBuf.Write(chunk[:idx])
 					break
 				}
+				jsonBuf.Write(chunk[:n])
+			}
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return nil, htmlDebug, err
 			}
 		}
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
+		return jsonBuf.Bytes(), htmlDebug, nil
 	}
-	if !found {
-		return nil, errors.New("ytInitialData prefix not found")
+	// Fallback: search for ytInitialData anywhere in the HTML
+	b := buf.Bytes()
+	idx := bytes.Index(b, []byte("ytInitialData"))
+	if idx == -1 {
+		return nil, htmlDebug, errors.New("ytInitialData not found in HTML")
 	}
-	// Now read until suffix
-	var jsonBuf bytes.Buffer
-	for {
-		chunk := make([]byte, chunkSize)
-		n, err := r.Read(chunk)
-		if n > 0 {
-			if idx := bytes.Index(chunk[:n], []byte(ytInitialDataSuffix)); idx != -1 {
-				jsonBuf.Write(chunk[:idx])
-				break
-			}
-			jsonBuf.Write(chunk[:n])
-		}
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
+	// Try to extract the nearest JSON object after ytInitialData
+	start := bytes.Index(b[idx:], []byte("{"))
+	end := bytes.Index(b[idx:], []byte("};"))
+	if start == -1 || end == -1 || end <= start {
+		return nil, htmlDebug, errors.New("ytInitialData JSON object not found after fallback")
 	}
-	return jsonBuf.Bytes(), nil
+	return b[idx+start : idx+end], htmlDebug, nil
 }
 
 func urlQueryEscape(s string) string {
