@@ -141,6 +141,12 @@ GopherTube/
 
 ---
 
+<div align="center">
+  <a href="https://star-history.com/#KrishnaSSH/GopherTube&Date">
+    <img src="https://api.star-history.com/svg?repos=KrishnaSSH/GopherTube&type=Date" alt="Star History Chart" />
+  </a>
+</div>
+
 ## License
 
 [![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)](LICENSE)
