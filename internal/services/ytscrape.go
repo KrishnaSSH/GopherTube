@@ -1,141 +1,99 @@
 package services
 
 import (
-	"bufio"
-	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"gophertube/internal/types"
 	"io"
 	"net/http"
-	"runtime"
+	"regexp"
 	"strings"
-	"sync/atomic"
-	"time"
-
-	"github.com/tidwall/gjson"
 )
 
-var ytInitialDataPrefix = "var ytInitialData = "
-
-var httpClient = &http.Client{
-	Timeout: 5 * time.Second,
-}
-
+// SearchYouTube scrapes YouTube search results page and returns a list of videos
 func SearchYouTube(query string, limit int) ([]types.Video, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	url := "https://www.youtube.com/results?search_query=" + urlQueryEscape(query)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch YouTube: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("YouTube returned non-200 status")
-	}
-
-	jsonData, err := extractYtInitialData(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read YouTube response: %w", err)
 	}
 
-	results := gjson.GetBytes(jsonData, "..videoRenderer")
-	if !results.Exists() {
-		return nil, errors.New("no videos found in YouTube search")
+	// Extract ytInitialData JSON
+	re := regexp.MustCompile(`(?s)var ytInitialData = (\{.*?\});`)
+	matches := re.FindSubmatch(body)
+	if len(matches) < 2 {
+		return nil, errors.New("ytInitialData not found in YouTube page")
+	}
+	jsonData := matches[1]
+
+	// Parse JSON
+	var root map[string]interface{}
+	if err := json.Unmarshal(jsonData, &root); err != nil {
+		return nil, fmt.Errorf("failed to parse ytInitialData: %w", err)
 	}
 
-	videos := make([]types.Video, 0, limit)
-	ch := make(chan types.Video, limit)
-	var collected int32
-	workerCount := runtime.NumCPU()
-	sem := make(chan struct{}, workerCount)
-	ctx2, cancel2 := context.WithCancel(context.Background())
-	defer cancel2()
-
-	for _, vr := range results.Array() {
-		if atomic.LoadInt32(&collected) >= int32(limit) {
-			break
+	// Traverse to videoRenderer nodes
+	videos := []types.Video{}
+	var walk func(interface{})
+	walk = func(node interface{}) {
+		if len(videos) >= limit {
+			return
 		}
-		sem <- struct{}{}
-		go func(vr gjson.Result) {
-			defer func() { <-sem }()
-			if ctx2.Err() != nil {
-				return
-			}
-			video := parseVideoRendererGJSON(vr)
-			if video.Title != "" && video.URL != "" {
-				if atomic.AddInt32(&collected, 1) <= int32(limit) {
-					ch <- video
-					if atomic.LoadInt32(&collected) == int32(limit) {
-						cancel2()
-					}
+		m, ok := node.(map[string]interface{})
+		if ok {
+			if vr, ok := m["videoRenderer"]; ok {
+				video := parseVideoRenderer(vr)
+				if video.Title != "" && video.URL != "" {
+					videos = append(videos, video)
 				}
 			}
-		}(vr)
-	}
-
-outer:
-	for range results.Array() {
-		if len(videos) >= limit {
-			break
-		}
-		select {
-		case v := <-ch:
-			videos = append(videos, v)
-		case <-ctx2.Done():
-			break outer
+			for _, v := range m {
+				walk(v)
+			}
+		} else if arr, ok := node.([]interface{}); ok {
+			for _, v := range arr {
+				walk(v)
+			}
 		}
 	}
+	walk(root)
 
 	if len(videos) == 0 {
 		return nil, errors.New("no videos found in YouTube search")
 	}
+	if len(videos) > limit {
+		videos = videos[:limit]
+	}
 	return videos, nil
-}
-
-// Fast line-by-line extraction of ytInitialData JSON
-func extractYtInitialData(r io.Reader) ([]byte, error) {
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if idx := strings.Index(line, ytInitialDataPrefix); idx != -1 {
-			jsonStart := idx + len(ytInitialDataPrefix)
-			jsonLine := line[jsonStart:]
-			// If the JSON is not complete on this line, keep reading
-			for !strings.HasSuffix(strings.TrimSpace(jsonLine), ";") && scanner.Scan() {
-				jsonLine += scanner.Text()
-			}
-			jsonLine = strings.TrimSuffix(jsonLine, ";")
-			return []byte(jsonLine), nil
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return nil, errors.New("ytInitialData not found in YouTube page")
 }
 
 func urlQueryEscape(s string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(s, " ", "+"), "#", "%23")
 }
 
-func parseVideoRendererGJSON(vr gjson.Result) types.Video {
-	title := vr.Get("title.runs.0.text").String()
-	videoId := vr.Get("videoId").String()
+func parseVideoRenderer(vr interface{}) types.Video {
+	m, ok := vr.(map[string]interface{})
+	if !ok {
+		return types.Video{}
+	}
+	title := safeJQText(m, "title", "runs", 0, "text")
+	videoId := safeJQString(m, "videoId")
 	url := "https://www.youtube.com/watch?v=" + videoId
-	channel := vr.Get("longBylineText.runs.0.text").String()
-	duration := vr.Get("lengthText.simpleText").String()
+	channel := safeJQText(m, "longBylineText", "runs", 0, "text")
+	duration := safeJQString(m, "lengthText", "simpleText")
 	thumb := ""
-	thumbs := vr.Get("thumbnail.thumbnails")
-	if thumbs.Exists() && thumbs.IsArray() && len(thumbs.Array()) > 0 {
-		thumb = thumbs.Array()[len(thumbs.Array())-1].Get("url").String()
+	if thumbs, ok := m["thumbnail"].(map[string]interface{}); ok {
+		if arr, ok := thumbs["thumbnails"].([]interface{}); ok && len(arr) > 0 {
+			if t, ok := arr[len(arr)-1].(map[string]interface{}); ok {
+				thumb, _ = t["url"].(string)
+			}
+		}
 	}
 	return types.Video{
 		Title:     title,
@@ -144,4 +102,35 @@ func parseVideoRendererGJSON(vr gjson.Result) types.Video {
 		Duration:  duration,
 		Thumbnail: thumb,
 	}
+}
+
+func safeJQString(m map[string]interface{}, keys ...string) string {
+	cur := m
+	for i, k := range keys {
+		if i == len(keys)-1 {
+			if v, ok := cur[k].(string); ok {
+				return v
+			}
+			return ""
+		}
+		if v, ok := cur[k].(map[string]interface{}); ok {
+			cur = v
+		} else {
+			return ""
+		}
+	}
+	return ""
+}
+
+func safeJQText(m map[string]interface{}, k1, k2 string, idx int, k3 string) string {
+	if a, ok := m[k1].(map[string]interface{}); ok {
+		if arr, ok := a[k2].([]interface{}); ok && len(arr) > idx {
+			if t, ok := arr[idx].(map[string]interface{}); ok {
+				if s, ok := t[k3].(string); ok {
+					return s
+				}
+			}
+		}
+	}
+	return ""
 }
