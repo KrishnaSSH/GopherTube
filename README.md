@@ -27,19 +27,18 @@ A simple terminal YouTube client for searching and watching videos using [yt-dlp
 
 ## Overview
 
-GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube website to search YouTube anduses [mpv](https://mpv.io/) to play videos. The UI is built with Go and Bubble Tea, and is fully keyboard-driven.
+GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube website to search YouTube and uses [mpv](https://mpv.io/) to play videos. The UI is built with Go and Bubble Tea, and is fully keyboard-driven.
 
-<p align="center">
-  <img src=".assets/demo.png" alt="Demo 1" width="80%"/>
-  <br><em>Search Page</em>
+<!-- Demo Images -->
+<p align="left">
+  <img src=".assets/demo1.png" alt="Main Demo" style="width:100%;max-width:900px;min-width:300px;" />
 </p>
-
-<p align="center">
-  <img src=".assets/demo2.png" alt="Additional Demo 2" width="80%"/>
-  <br><em>Browsing and searching for videos</em>
+<p align="left">
+  <img src=".assets/demo2.png" alt="Additional Demo 2" style="width:100%;max-width:900px;min-width:300px;" />
+  <br><em>searching for videos</em>
 </p>
-<p align="center">
-  <img src=".assets/demo3.png" alt="Additional Demo 3" width="80%"/>
+<p align="left">
+  <img src=".assets/demo3.png" alt="Additional Demo 3" style="width:100%;max-width:900px;min-width:300px;" />
   <br><em>Video playback in action</em>
 </p>
 
@@ -169,6 +168,7 @@ GopherTube/
 - [ ] Add thumbnails support
 - [ ] Add downloads support
 
+[![Star History](https://api.star-history.com/svg?repos=KrishnaSSH/GopherTube&type=Date)](https://www.star-history.com/#KrishnaSSH/GopherTube&Timeline)
 
 ---
 
