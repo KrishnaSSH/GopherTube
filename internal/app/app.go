@@ -38,7 +38,10 @@ const (
 )
 
 func NewApp() *App {
-	config := services.NewConfig()
+	config, err := services.NewConfig()
+	if err != nil {
+		panic("failed to load config: " + err.Error())
+	}
 	mpvService := services.NewMPVService(config)
 
 	return &App{
@@ -77,13 +80,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return a, tea.Quit
 		case "esc":
-			if a.state.CurrentView == ViewVideoList {
+			switch a.state.CurrentView {
+			case ViewVideoList:
 				a.state.CurrentView = ViewSearch
 				a.state.Videos = nil
 				a.state.SelectedIndex = 0
 				// Reset search component loading state
 				a.searchComponent.ResetLoading()
-			} else if a.state.CurrentView == ViewSearch {
+			case ViewSearch:
 				return a, tea.Quit
 			}
 		}
@@ -138,7 +142,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Update current view component
-	switch a.state.CurrentView {
+	switch view := a.state.CurrentView; view {
 	case ViewSearch:
 		searchModel, cmd := a.searchComponent.Update(msg)
 		a.searchComponent = searchModel.(*components.SearchComponent)
