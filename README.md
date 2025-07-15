@@ -32,10 +32,10 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 - Keyboard navigation (arrows, Enter, Tab, Esc, g/G)
 - YAML config for paths and settings
 
-# Who is this Project for?
-This Project is for everyone who enjoys Terminal apps
-For Everyone Who respects thier Privacy and Freedom
-Anyone who wants to watch videos while using as few system resources as possible — for example, if you have an older or low-spec machine that struggles to run YouTube in a full web browser, this project can help you cut down on resource usage.
+## Who is this Project for?
+- This Project is for everyone who enjoys Terminal apps
+- For Everyone Who respects thier Privacy and Freedom
+- Anyone who wants to watch videos while using as few system resources as possible — for example, if you have an older or low-spec machine that struggles to run YouTube in a full web browser, this project can help you cut down on resource usage.
 
 ---
 
