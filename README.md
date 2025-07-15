@@ -32,6 +32,11 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 - Keyboard navigation (arrows, Enter, Tab, Esc, g/G)
 - YAML config for paths and settings
 
+# Who is this Project for?
+This Project is for everyone who enjoys Terminal apps
+For Everyone Who respects thier Privacy and Freedom
+Anyone who wants to watch videos while using as few system resources as possible — for example, if you have an older or low-spec machine that struggles to run YouTube in a full web browser, this project can help you cut down on resource usage.
+
 ---
 
 ## Prerequisites
@@ -139,13 +144,14 @@ GopherTube/
     └── errors/
 ```
 
----
+## TODO
 
-<div align="center">
-  <a href="https://star-history.com/#KrishnaSSH/GopherTube&Date">
-    <img src="https://api.star-history.com/svg?repos=KrishnaSSH/GopherTube&type=Date" alt="Star History Chart" />
-  </a>
-</div>
+- [ ] Implement Vim bindings
+- [ ] Add thumbnails support
+- [ ] Add downloads support
+
+
+---
 
 ## License
 
@@ -156,11 +162,4 @@ GopherTube/
 
 ## Contributing
 
-Interested in improving GopherTube? Whether you’ve found a bug, have an idea, or want to contribute, we’d love your help.
-
-- Check out our [CONTRIBUTING.md](CONTRIBUTING.md) for all the details.
-- If you’re not sure where to start, open an issue or ask a question—no idea is too small.
-- Pull requests, bug reports, and suggestions are all welcome.
-- Please be kind and respectful to everyone here.
-
-Thank you for supporting the project!
+PRs and issues welcome. 
