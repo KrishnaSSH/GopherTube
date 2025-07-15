@@ -238,7 +238,7 @@ func (s *SearchComponent) GetCurrentQuery() string {
 }
 
 func (s *SearchComponent) SearchWithQuery(query string) ([]types.Video, error) {
-	return services.SearchYouTube(query, s.config.GetSearchLimit())
+	return services.SearchYouTube(query, s.config.SearchLimit)
 }
 
 func (s *SearchComponent) searchVideos(query string) tea.Cmd {
@@ -298,7 +298,7 @@ func (s *SearchComponent) addRecentSearch(query string) {
 
 func (s *SearchComponent) searchWithYtDlp(query string) ([]types.Video, error) {
 	// Use the new YouTube scraper instead of yt-dlp
-	return services.SearchYouTube(query, s.config.GetSearchLimit())
+	return services.SearchYouTube(query, s.config.SearchLimit)
 }
 
 // ClearCache clears the search cache

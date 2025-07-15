@@ -1,135 +1,105 @@
-.TH GOPHERTUBE 1 "2024" "GopherTube" "User Commands"
+.TH GOPHERTUBE 1 "2025" "GopherTube" "User Commands"
 
 .SH NAME
-gophertube \- Terminal user interface for YouTube video search and playback
+gophertube \- Terminal YouTube client for searching and watching videos
 
 .SH SYNOPSIS
 .B gophertube
-[\fB\-\-help\fR]
+[
+.B \-\-help
+]
 
 .SH DESCRIPTION
 .B GopherTube
-is a modern terminal user interface for searching and watching YouTube videos
-using yt-dlp and mpv. It provides a clean, keyboard-driven interface for
-browsing and playing YouTube content directly in the terminal.
+is a simple, modern terminal YouTube client for searching and watching videos using yt-dlp and mpv. It features a fast, keyboard-driven interface built with Go and Bubble Tea, requiring no API key. GopherTube scrapes YouTube directly and plays videos with mpv, all from your terminal.
 
 .SH FEATURES
 .TP
-.B Search Interface
-Real-time YouTube video search with instant results
+.B Fast YouTube search
+Scrapes YouTube directly, no API key needed
 .TP
-.B Video Playback
-Direct video playback using mpv media player
+.B Play videos with mpv
+Seamless playback using the mpv media player
 .TP
-.B Navigation
-Full keyboard navigation with arrow keys and shortcuts
+.B Minimal terminal UI
+Built with Bubble Tea, fully keyboard-driven
 .TP
-.B Design
-Swiss design-inspired clean interface
+.B Keyboard navigation
+Navigate with arrows, Enter, Tab, Esc, g/G
 .TP
-.B Configuration
-YAML-based configuration system
+.B YAML config
+Configure paths and settings easily
 .TP
-.B Responsive
-Adapts to terminal window size
+.B Rotating tips
+Helpful shortcuts displayed at the bottom
 
-.SH NAVIGATION
+.SH KEYBOARD SHORTCUTS
+.TS
+allbox;
+l l.
+Key	Action
+_
+Enter	Search / Play video
+↑/↓	Navigate video list
+Tab	Load more videos
+g	Go to first video
+G	Go to last video
+Esc	Go back / Quit
+.TE
 
-.SS Search View
-.TP
-.B Enter
-Execute search with current query
-.TP
-.B Ctrl+C
-Quit the application
-.TP
-.B Esc
-Quit the application
-
-.SS Video List View
-.TP
-.B ↑/↓
-Navigate through video list
-.TP
-.B Enter
-Play selected video
-.TP
-.B Tab
-Load more videos (append to current list)
-.TP
-.B g
-Go to first video
-.TP
-.B G
-Go to last video
-.TP
-.B Esc
-Return to search view
+.SH USAGE
+.PP
+Start the app:
+.B ./gophertube
+.PP
+Type a search and press Enter. Use ↑/↓ to move, Enter to play, Tab to load more, Esc to go back. A spinner shows while the video loads, then mpv opens. Watch for rotating tips at the bottom for helpful shortcuts!
 
 .SH CONFIGURATION
-
-The application can be configured by creating a YAML configuration file at
-.BR ~/.config/gophertube/gophertube.yaml .
-
-Example configuration:
-.RS
+.PP
+Create ~/.config/gophertube/gophertube.yaml:
 .PP
 .nf
-# Path to mpv executable
 mpv_path: "mpv"
-
-# Path to yt-dlp executable
 ytdlp_path: "yt-dlp"
-
-# Default video quality
-video_quality: "best"
-
-# Download directory
+video_quality: "best[height<=1080]/best"
 download_path: "~/Videos/gophertube"
+search_limit: 8
 .fi
-.RE
+.PP
+See config/gophertube.yaml.example for the full template.
 
 .SH REQUIREMENTS
-
 .TP
-.B yt-dlp
-YouTube video downloader (required for search functionality)
+.B Go 1.21+
+Required for building from source
 .TP
 .B mpv
 Media player for video playback
 .TP
-.B Go 1.21+
-Required for building from source
+.B yt-dlp
+YouTube downloader for search and playback
 
 .SH INSTALLATION
-
-.SS From Source
+.SS Quick Install (One-liner)
 .PP
 .nf
-git clone https://github.com/yourusername/gophertube.git
-cd gophertube
-go build -o gophertube
-sudo cp gophertube /usr/local/bin/
+curl -sSL https://raw.githubusercontent.com/KrishnaSSH/GopherTube/main/install.sh | bash
 .fi
-
-.SS Dependencies
-.PP
-Install required dependencies:
+.SS Manual Installation
 .PP
 .nf
-# Ubuntu/Debian
-sudo apt install mpv
-pip install yt-dlp
-
-# macOS
-brew install mpv yt-dlp
-
-# Arch Linux
-sudo pacman -S mpv yt-dlp
+git clone https://github.com/KrishnaSSH/GopherTube.git
+cd GopherTube
+go build -o gophertube
+./gophertube
+.fi
+.SS Makefile
+.PP
+.nf
+make install # Install binary and man page
 .fi
 
 .SH EXAMPLES
-
 .TP
 .B gophertube
 Start the application
@@ -138,7 +108,6 @@ Start the application
 Show help information
 
 .SH ENVIRONMENT
-
 .TP
 .B GOPHERTUBE_CONFIG
 Override configuration file path
@@ -147,7 +116,6 @@ Override configuration file path
 Override cache directory path
 
 .SH FILES
-
 .TP
 .B ~/.config/gophertube/gophertube.yaml
 Configuration file
@@ -156,22 +124,15 @@ Configuration file
 Default download directory
 
 .SH BUGS
-
-Report bugs to the project issue tracker at:
-.BR https://github.com/yourusername/gophertube/issues
+Report bugs and suggestions at:
+.BR https://github.com/KrishnaSSH/GopherTube/issues
 
 .SH AUTHOR
-
 Written by the GopherTube development team.
 
 .SH COPYRIGHT
-
-Copyright © 2024 GopherTube contributors. This is free software; see the source
-for copying conditions. There is NO warranty; not even for MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.
+Copyright © 2025 GopherTube contributors. This is free software; see the source for copying conditions. There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 .SH SEE ALSO
-
 .BR mpv (1),
-.BR yt-dlp (1),
-.BR youtube-dl (1) 
+.BR yt-dlp (1) 

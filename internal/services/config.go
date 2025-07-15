@@ -7,69 +7,53 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	DefaultMPVPath      = "mpv"
+	DefaultYTDlpPath    = "yt-dlp"
+	DefaultVideoQuality = "best[height<=1080]/best"
+	DefaultSearchLimit  = 20
+)
+
+
 type Config struct {
-	MPVPath      string
-	YTDlpPath    string
-	VideoQuality string
-	DownloadPath string
-	SearchLimit  int
+	MPVPath      string `mapstructure:"mpv_path"`
+	YTDlpPath    string `mapstructure:"ytdlp_path"`
+	VideoQuality string `mapstructure:"video_quality"`
+	DownloadPath string `mapstructure:"download_path"`
+	SearchLimit  int    `mapstructure:"search_limit"`
 }
 
-func NewConfig() *Config {
-	config := &Config{
-		MPVPath:      "mpv",
-		YTDlpPath:    "yt-dlp",
-		VideoQuality: "best[height<=1080]/best",
-		DownloadPath: getDefaultDownloadPath(),
-		SearchLimit:  20, // changed from 8 to 20
+
+func NewConfig() (*Config, error) {
+	v := viper.New()
+	v.SetConfigName("gophertube")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("$HOME/.config/gophertube")
+	v.AddConfigPath(".")
+
+	// Set defaults
+	v.SetDefault("mpv_path", DefaultMPVPath)
+	v.SetDefault("ytdlp_path", DefaultYTDlpPath)
+	v.SetDefault("video_quality", DefaultVideoQuality)
+	v.SetDefault("download_path", getDefaultDownloadPath())
+	v.SetDefault("search_limit", DefaultSearchLimit)
+
+	_ = v.ReadInConfig() // Ignore error: config file is optional
+
+	var cfg Config
+	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, err
 	}
 
-	// Load config from file
-	viper.SetConfigName("gophertube")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("$HOME/.config/gophertube")
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err == nil {
-		if mpvPath := viper.GetString("mpv_path"); mpvPath != "" {
-			config.MPVPath = mpvPath
-		}
-		if ytdlpPath := viper.GetString("ytdlp_path"); ytdlpPath != "" {
-			config.YTDlpPath = ytdlpPath
-		}
-		if quality := viper.GetString("video_quality"); quality != "" {
-			config.VideoQuality = quality
-		}
-		if downloadPath := viper.GetString("download_path"); downloadPath != "" {
-			config.DownloadPath = downloadPath
-		}
-		if searchLimit := viper.GetInt("search_limit"); searchLimit > 0 {
-			config.SearchLimit = searchLimit
-		}
+	// Defensive: ensure DownloadPath is set
+	if cfg.DownloadPath == "" {
+		cfg.DownloadPath = getDefaultDownloadPath()
+	}
+	if cfg.SearchLimit <= 0 {
+		cfg.SearchLimit = DefaultSearchLimit
 	}
 
-	return config
-}
-
-// ConfigService interface implementation
-func (c *Config) GetMPVPath() string {
-	return c.MPVPath
-}
-
-func (c *Config) GetYTDlpPath() string {
-	return c.YTDlpPath
-}
-
-func (c *Config) GetVideoQuality() string {
-	return c.VideoQuality
-}
-
-func (c *Config) GetDownloadPath() string {
-	return c.DownloadPath
-}
-
-func (c *Config) GetSearchLimit() int {
-	return c.SearchLimit
+	return &cfg, nil
 }
 
 func getDefaultDownloadPath() string {
