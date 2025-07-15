@@ -42,7 +42,6 @@ dist/
 *.zip
 
 # Configuration files (user-specific)
-config/gophertube.yaml
 ~/.config/gophertube/
 
 # Log files
