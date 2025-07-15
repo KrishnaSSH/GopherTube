@@ -31,7 +31,7 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 
 <!-- Demo Images -->
 <p align="left">
-  <img src=".assets/demo1.png" alt="Main Demo" style="width:100%;max-width:900px;min-width:300px;" />
+  <img src=".assets/demo.png" alt="Main Demo" style="width:100%;max-width:900px;min-width:300px;" />
 </p>
 <p align="left">
   <img src=".assets/demo2.png" alt="Additional Demo 2" style="width:100%;max-width:900px;min-width:300px;" />
