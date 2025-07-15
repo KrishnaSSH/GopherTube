@@ -15,9 +15,9 @@
 [![Stars](https://img.shields.io/github/stars/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/stargazers)
 
 <!-- Discord Button -->
-<p align="center">
+<p align="left">
   <a href="https://discord.gg/TqYvzbGJzb" target="_blank">
-    <img src="https://invidget.switchblade.xyz/TqYvzbGJzb" alt="Join our Discord" style="width:100%;max-width:700px;min-width:300px;" />
+    <img src="https://invidget.switchblade.xyz/TqYvzbGJzb" alt="Join our Discord" />
   </a>
 </p>
 
