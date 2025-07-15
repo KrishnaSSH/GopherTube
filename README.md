@@ -14,6 +14,13 @@
 [![PRs](https://img.shields.io/github/issues-pr/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/pulls)
 [![Stars](https://img.shields.io/github/stars/KrishnaSSH/GopherTube?style=for-the-badge)](https://github.com/KrishnaSSH/GopherTube/stargazers)
 
+<!-- Discord Button -->
+<p align="center">
+  <a href="https://discord.gg/TqYvzbGJzb" target="_blank">
+    <img src="https://invidget.switchblade.xyz/TqYvzbGJzb" alt="Join our Discord" style="width:100%;max-width:700px;min-width:300px;" />
+  </a>
+</p>
+
 A simple terminal YouTube client for searching and watching videos using [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [mpv](https://mpv.io/).
 
 ---
