@@ -23,6 +23,7 @@
 
 A simple terminal YouTube client for searching and watching videos using [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [mpv](https://mpv.io/).
 
+
 ---
 
 ## Overview
@@ -181,6 +182,27 @@ GopherTube/
 
 ---
 
+<!-- Donation Box -->
+<div align="left">
+  <h3>💖 Support GopherTube</h3>
+  <p>If you find this project useful, consider supporting its development with crypto:</p>
+  <table>
+    <tr>
+      <td><img src="https://img.shields.io/badge/BTC-donate-orange?style=for-the-badge&logo=bitcoin&logoColor=white" alt="BTC" /></td>
+      <td><code>bc1q78ymwmf33vr33ly8rpej7cqvr6cljjcdjf3g6p</code></td>
+    </tr>
+    <tr>
+      <td><img src="https://img.shields.io/badge/LTC-donate-blue?style=for-the-badge&logo=litecoin&logoColor=white" alt="LTC" /></td>
+      <td><code>ltc1qsfp4mdwwk3nppj278ayphqmkyf90xvysxp3des</code></td>
+    </tr>
+    <tr>
+      <td><img src="https://img.shields.io/badge/ETH-donate-purple?style=for-the-badge&logo=ethereum&logoColor=white" alt="ETH" /></td>
+      <td><code>0x6f786f482DDa360679791D90B7C8337655dC2199</code></td>
+    </tr>
+  </table>
+</div>
+
+
 ## License
 
 [![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)](LICENSE)
@@ -193,3 +215,6 @@ GopherTube/
 PRs and issues welcome. 
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. 
+
+---
+
