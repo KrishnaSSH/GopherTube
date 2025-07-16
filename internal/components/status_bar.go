@@ -61,4 +61,3 @@ func (s *StatusBar) SetMessage(message string) {
 	s.message = message
 	s.timestamp = time.Now()
 }
- 

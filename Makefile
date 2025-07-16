@@ -1,4 +1,4 @@
-.PHONY: install build
+.PHONY: install build fmt
 
 VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "dev")
 
@@ -19,4 +19,7 @@ install:
 build:
 	go build -ldflags "-X main.version=$(VERSION)" -o gophertube main.go 
 
+fmt:
+	go fmt ./...
+	go mod tidy
 	

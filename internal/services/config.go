@@ -14,7 +14,6 @@ const (
 	DefaultSearchLimit  = 20
 )
 
-
 type Config struct {
 	MPVPath      string `mapstructure:"mpv_path"`
 	YTDlpPath    string `mapstructure:"ytdlp_path"`
@@ -22,7 +21,6 @@ type Config struct {
 	DownloadPath string `mapstructure:"download_path"`
 	SearchLimit  int    `mapstructure:"search_limit"`
 }
-
 
 func NewConfig() (*Config, error) {
 	v := viper.New()
