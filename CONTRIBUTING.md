@@ -17,6 +17,7 @@ Hey there! Thanks for your interest in making GopherTube better. We’re a small
 - Keep your changes focused and your commit messages short and clear.
 - If you’re changing something users will see, update the docs too.
 - Test your code before you send a pull request.
+- format your code using the ```make fmt``` command 
 - Link any related issues in your PR (like `Closes #123`).
 
 ### Code Style
