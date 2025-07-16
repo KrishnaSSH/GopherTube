@@ -169,7 +169,15 @@ GopherTube/
 - [ ] Add thumbnails support
 - [ ] Add downloads support
 
-[![Star History](https://api.star-history.com/svg?repos=KrishnaSSH/GopherTube&type=Date)](https://www.star-history.com/#KrishnaSSH/GopherTube&Timeline)
+## Star History
+
+<a href="https://www.star-history.com/#KrishnaSSH/GopherTube&Timeline">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=KrishnaSSH/GopherTube&type=Timeline&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=KrishnaSSH/GopherTube&type=Timeline" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=KrishnaSSH/GopherTube&type=Timeline" />
+ </picture>
+</a>
 
 ---
 
