@@ -26,7 +26,8 @@ jobs:
 
       - name: Build binary (linux amd64)
         run: |
-          go build -o gophertube main.go
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+          go build -ldflags "-X main.version=$VERSION" -o gophertube main.go
 
       - name: Install packaging tools
         run: |

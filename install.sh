@@ -360,11 +360,12 @@ build_gophertube() {
     go mod download || print_warning "Failed to download some dependencies"
     go mod tidy || print_warning "Failed to tidy Go modules"
     
-    print_status "Running make install..."
-    make install || {
-        print_error "Failed to run make install"
-        return 1
-    }
+    # Build GopherTube with dynamic version from latest tag
+    git fetch --tags > /dev/null 2>&1 || true
+    LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+    print_status "Building GopherTube with version: $LATEST_TAG"
+    go build -ldflags "-X main.version=$LATEST_TAG" -o gophertube main.go
+    
     print_success "GopherTube installed via make install!"
 }
 

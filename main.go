@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var version = "dev" // will be replaced at build time with -ldflags
+
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "gophertube",
@@ -36,6 +38,7 @@ EXAMPLES:
   gophertube --help            # Show this help message
 
 For more information, see the man page: man gophertube`,
+		Version: version,
 		Run: func(cmd *cobra.Command, args []string) {
 			app := app.NewApp()
 			if err := app.Run(); err != nil {
@@ -45,9 +48,10 @@ For more information, see the man page: man gophertube`,
 		},
 	}
 
+	rootCmd.SetVersionTemplate("GopherTube version: {{.Version}}\n")
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
- 
