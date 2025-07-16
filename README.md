@@ -191,3 +191,5 @@ GopherTube/
 ## Contributing
 
 PRs and issues welcome. 
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. 
