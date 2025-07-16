@@ -49,7 +49,7 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 - Play videos with [mpv](https://mpv.io/)
 - Minimal terminal UI (Bubble Tea)
 - Keyboard navigation (arrows, Enter, Tab, Esc, g/G)
-- YAML config for paths and settings
+- YAML config for paths(for dependencies) and settings
 
 ## Who is this Project for?
 - This Project is for everyone who enjoys Terminal apps
