@@ -398,8 +398,8 @@ install_system_wide() {
         
         # Create config directory and copy example
         mkdir -p "$CONFIG_DIR"
-        if [ -f "config/gophertube.yaml.example" ]; then
-            cp config/gophertube.yaml.example "$CONFIG_DIR/gophertube.yaml"
+        if [ -f "config/gophertube.yaml" ]; then
+            cp config/gophertube.yaml "$CONFIG_DIR/gophertube.yaml"
             print_status "Configuration file created at $CONFIG_DIR/gophertube.yaml"
         fi
         
