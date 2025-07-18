@@ -33,7 +33,7 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 **Screenshots**
 
 <p align="left">
-  <img src=".assets/demo2.png" alt="Additional Demo 2" style="width:100%;max-width:900px;min-width:300px;" />
+  <img src=".assets/demo.png" alt="Additional Demo 2" style="width:100%;max-width:900px;min-width:300px;" />
   <br><em>searching for videos</em>
 </p>
 
@@ -146,8 +146,7 @@ GopherTube/
 
 ## TODO
 
-- [ ] Implement Vim bindings
-- [ ] Add thumbnails support
+- [x] Add thumbnails support
 - [ ] Add downloads support
 
 ## Star History
