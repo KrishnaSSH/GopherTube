@@ -16,8 +16,8 @@ video_quality: "best[height<=1080]/best"
 download_path: "~/Videos/gophertube"
 
 # Number of search results to fetch
-# Default: 20 (optimized for speed)
-search_limit: 20
+# Default: 30 (lower it to increase speed)
+search_limit: 30
 
 # Additional mpv options
 # mpv_options: "--no-video-title-show --geometry 50%:50%"

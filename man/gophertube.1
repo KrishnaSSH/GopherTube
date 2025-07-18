@@ -6,12 +6,18 @@ gophertube \- Terminal YouTube client for searching and watching videos
 .SH SYNOPSIS
 .B gophertube
 [
+.B \-h
+|
 .B \-\-help
+|
+.B \-v
+|
+.B \-\-version
 ]
 
 .SH DESCRIPTION
 .B GopherTube
-is a simple, modern terminal YouTube client for searching and watching videos using yt-dlp and mpv. It features a fast, keyboard-driven interface built with Go and Bubble Tea, requiring no API key. GopherTube scrapes YouTube directly and plays videos with mpv, all from your terminal.
+is a simple, modern terminal YouTube client for searching and watching videos using mpv. It features a fast, keyboard-driven interface built with Go, requiring no API key. GopherTube scrapes YouTube directly and plays videos with mpv, all from your terminal.
 
 .SH FEATURES
 .TP
@@ -21,17 +27,14 @@ Scrapes YouTube directly, no API key needed
 .B Play videos with mpv
 Seamless playback using the mpv media player
 .TP
-.B Minimal terminal UI
-Built with Bubble Tea, fully keyboard-driven
+.B Terminal image previews
+Thumbnails shown in the terminal using chafa
 .TP
 .B Keyboard navigation
-Navigate with arrows, Enter, Tab, Esc, g/G
+Navigate with arrows, Enter, Tab, Esc
 .TP
 .B YAML config
-Configure paths and settings easily
-.TP
-.B Rotating tips
-Helpful shortcuts displayed at the bottom
+Configure search limit easily
 
 .SH KEYBOARD SHORTCUTS
 .TS
@@ -42,8 +45,6 @@ _
 Enter	Search / Play video
 ↑/↓	Navigate video list
 Tab	Load more videos
-g	Go to first video
-G	Go to last video
 Esc	Go back / Quit
 .TE
 
@@ -52,21 +53,23 @@ Esc	Go back / Quit
 Start the app:
 .B ./gophertube
 .PP
-Type a search and press Enter. Use ↑/↓ to move, Enter to play, Tab to load more, Esc to go back. A spinner shows while the video loads, then mpv opens. Watch for rotating tips at the bottom for helpful shortcuts!
+Type a search and press Enter. Use ↑/↓ to move, Enter to play, Tab to load more, Esc to go back. Thumbnails and video info are shown in the preview. mpv opens to play the selected video.
+
+.SH OPTIONS
+.TP
+.B -h, --help
+Show help message and exit
+.TP
+.B -v, --version
+Show version and exit
 
 .SH CONFIGURATION
 .PP
 Create ~/.config/gophertube/gophertube.yaml:
 .PP
 .nf
-mpv_path: "mpv"
-ytdlp_path: "yt-dlp"
-video_quality: "best[height<=1080]/best"
-download_path: "~/Videos/gophertube"
-search_limit: 8
+search_limit: 30
 .fi
-.PP
-See config/gophertube.yaml.example for the full template.
 
 .SH REQUIREMENTS
 .TP
@@ -76,8 +79,11 @@ Required for building from source
 .B mpv
 Media player for video playback
 .TP
-.B yt-dlp
-YouTube downloader for search and playback
+.B fzf
+Fuzzy finder for interactive selection
+.TP
+.B chafa
+Terminal image preview
 
 .SH INSTALLATION
 .SS Quick Install (One-liner)
@@ -93,11 +99,6 @@ cd GopherTube
 go build -o gophertube
 ./gophertube
 .fi
-.SS Makefile
-.PP
-.nf
-make install # Install binary and man page
-.fi
 
 .SH EXAMPLES
 .TP
@@ -106,22 +107,14 @@ Start the application
 .TP
 .B gophertube --help
 Show help information
-
-.SH ENVIRONMENT
 .TP
-.B GOPHERTUBE_CONFIG
-Override configuration file path
-.TP
-.B GOPHERTUBE_CACHE
-Override cache directory path
+.B gophertube --version
+Show version information
 
 .SH FILES
 .TP
 .B ~/.config/gophertube/gophertube.yaml
 Configuration file
-.TP
-.B ~/Videos/gophertube/
-Default download directory
 
 .SH BUGS
 Report bugs and suggestions at:
@@ -135,4 +128,5 @@ Copyright © 2025 GopherTube contributors. This is free software; see the source
 
 .SH SEE ALSO
 .BR mpv (1),
-.BR yt-dlp (1) 
+.BR fzf (1),
+.BR chafa (1) 

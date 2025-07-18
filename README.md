@@ -28,27 +28,21 @@ A simple terminal YouTube client for searching and watching videos using [yt-dlp
 
 ## Overview
 
-GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube website to search YouTube and uses [mpv](https://mpv.io/) to play videos. The UI is built with Go and Bubble Tea, and is fully keyboard-driven.
+GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube website to search YouTube and uses [mpv](https://mpv.io/) to play videos. The UI is built with Go and uses fzf, and is keyboard-driven.
 
 **Screenshots**
-<p align="left">
-  <img src=".assets/demo.png" alt="Main Demo" style="width:100%;max-width:900px;min-width:300px;" />
-  <br><em>Search Page</em>
-</p>
+
 <p align="left">
   <img src=".assets/demo2.png" alt="Additional Demo 2" style="width:100%;max-width:900px;min-width:300px;" />
   <br><em>searching for videos</em>
 </p>
-<p align="left">
-  <img src=".assets/demo3.png" alt="Additional Demo 3" style="width:100%;max-width:900px;min-width:300px;" />
-  <br><em>Video playback in action</em>
-</p>
+
 
 ## Features
 
 - **Fast YouTube search** (scrapes YouTube directly, no API key needed)
 - Play videos with [mpv](https://mpv.io/)
-- Minimal terminal UI (Bubble Tea)
+- Minimal terminal UI (fzf)
 - Keyboard navigation (arrows, Enter, Tab, Esc, g/G)
 - YAML config for paths(for dependencies) and settings
 
@@ -63,20 +57,20 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 
 - [Go 1.21+](https://go.dev/dl/)
 - [mpv](https://mpv.io/) (media player)
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (YouTube downloader)
+- [fzf](https://github.com/junegunn/fzf) (fuzzy finder)
+- [chafa](https://hpjansson.org/chafa/) (terminal image preview)
 
 Install dependencies:
 
 ```bash
 # Ubuntu/Debian
-sudo apt install mpv
-pip install yt-dlp
+sudo apt install mpv fzf chafa
 
 # macOS
-brew install mpv yt-dlp
+brew install mpv fzf chafa
 
 # Arch Linux
-sudo pacman -S mpv yt-dlp
+sudo pacman -S mpv fzf chafa
 ```
 
 ---
@@ -96,21 +90,15 @@ go build -o gophertube
 ./gophertube
 ```
 
-Or use the Makefile:
-
-```bash
-make install # Install binary and man page
-```
-
 ---
 
 ## Usage
 
 - Start the app: `./gophertube`
-- Type a search and press Enter
-- Use ↑/↓ to move, Enter to play, Tab to load more, Esc to go back
-- Spinner shows while video loads, then mpv opens
-- **Watch for rotating tips at the bottom for helpful shortcuts!**
+- Type a search and press Enter (or press Escape to exit)
+- Use ↑/↓ to move, Enter to play, Tab to load more, Esc to go back to search
+- Thumbnails and video info are shown in the preview
+- mpv opens to play the selected video
 
 ### Keyboard Shortcuts
 
@@ -119,8 +107,6 @@ make install # Install binary and man page
 | Enter    | Search / Play video     |
 | ↑/↓      | Navigate video list     |
 | Tab      | Load more videos        |
-| g        | Go to first video       |
-| G        | Go to last video        |
 | Esc      | Go back / Quit          |
 
 ---
@@ -130,14 +116,8 @@ make install # Install binary and man page
 Create `~/.config/gophertube/gophertube.yaml`:
 
 ```yaml
-mpv_path: "mpv"
-ytdlp_path: "yt-dlp"
-video_quality: "best[height<=1080]/best"
-download_path: "~/Videos/gophertube"
-search_limit: 8
+search_limit: 30
 ```
-
-See [config example](config/gophertube.yaml.example) for the full template.
 
 ---
 

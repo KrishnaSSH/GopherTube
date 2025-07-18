@@ -169,167 +169,11 @@ detect_system() {
     print_status "Package Manager: $PKG_MANAGER"
 }
 
-# Install Go with official binary
-install_go() {
-    if command_exists go; then
-        GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
-        print_status "Go is already installed: $GO_VERSION"
-        
-        # Check if Go version is sufficient
-        GO_MAJOR=$(echo "$GO_VERSION" | cut -d. -f1)
-        GO_MINOR=$(echo "$GO_VERSION" | cut -d. -f2)
-        
-        if [ "$GO_MAJOR" -gt 1 ] || ([ "$GO_MAJOR" -eq 1 ] && [ "$GO_MINOR" -ge 21 ]); then
-            print_success "Go version is sufficient"
-            return 0
-        else
-            print_warning "Go version is too old. Installing newer version..."
-        fi
-    fi
-
-    print_status "Installing Go from official binary..."
-    
-    # Determine latest Go version
-    GO_VERSION=$(curl -s https://golang.org/dl/ | grep -o 'go[0-9]\+\.[0-9]\+' | head -1 2>/dev/null || echo "go1.21.0")
-    if [ -z "$GO_VERSION" ] || [ "$GO_VERSION" = "go1.21.0" ]; then
-        GO_VERSION="go1.21.0"  # Fallback version
-    fi
-    
-    print_status "Using Go version: $GO_VERSION"
-    
-    # Download URL
-    GO_ARCH=""
-    case $ARCH in
-        "x86_64"|"amd64") GO_ARCH="amd64" ;;
-        "i386"|"i686") GO_ARCH="386" ;;
-        "armv7l"|"arm") GO_ARCH="armv6l" ;;
-        "aarch64"|"arm64") GO_ARCH="arm64" ;;
-        "ppc64le") GO_ARCH="ppc64le" ;;
-        "s390x") GO_ARCH="s390x" ;;
-        *) GO_ARCH="amd64" ;;  # Default fallback
-    esac
-    
-    GO_OS=""
-    case $OS in
-        "linux") GO_OS="linux" ;;
-        "macos") GO_OS="darwin" ;;
-        "freebsd") GO_OS="freebsd" ;;
-        "openbsd") GO_OS="openbsd" ;;
-        "netbsd") GO_OS="netbsd" ;;
-        *) GO_OS="linux" ;;  # Default fallback
-    esac
-    
-    GO_URL="https://golang.org/dl/${GO_VERSION}.${GO_OS}-${GO_ARCH}.tar.gz"
-    
-    print_status "Downloading Go from: $GO_URL"
-    
-    # Download and install
-    cd /tmp
-    if curl -L "$GO_URL" -o go.tar.gz; then
-        if run_with_sudo tar -C /usr/local -xzf go.tar.gz; then
-            rm -f go.tar.gz
-            
-            # Add to PATH if not already there
-            if ! grep -q "/usr/local/go/bin" ~/.bashrc 2>/dev/null; then
-                echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-            fi
-            export PATH=$PATH:/usr/local/go/bin
-            
-            print_success "Go installed successfully"
-        else
-            print_error "Failed to extract Go archive"
-            rm -f go.tar.gz
-            return 1
-        fi
-    else
-        print_error "Failed to download Go from $GO_URL"
-        return 1
-    fi
-}
-
-# Install mpv from source
-install_mpv() {
-    if command_exists mpv; then
-        print_status "mpv is already installed"
-        return 0
-    fi
-
-    print_status "Installing mpv from source..."
-    
-    # Check for build dependencies
-    if ! command_exists git; then
-        print_error "git is required to build mpv"
-        return 1
-    fi
-    
-    # Install build dependencies
-    print_status "Installing build dependencies..."
-    if [ "$PKG_MANAGER" != "none" ]; then
-        case $PKG_MANAGER in
-            "apt")
-                run_with_sudo apt-get update
-                run_with_sudo apt-get install -y build-essential cmake pkg-config libssl-dev libffi-dev python3-dev
-                ;;
-            "pacman")
-                run_with_sudo pacman -S --noconfirm base-devel cmake pkg-config openssl libffi python
-                ;;
-            "dnf"|"yum")
-                run_with_sudo dnf install -y gcc gcc-c++ make cmake pkgconfig openssl-devel libffi-devel python3-devel
-                ;;
-            "brew")
-                brew install cmake pkg-config openssl libffi
-                ;;
-        esac
-    fi
-    
-    # Clone and build mpv
-    cd /tmp
-    if git clone https://github.com/mpv-player/mpv.git mpv-build; then
-        cd mpv-build
-        ./bootstrap.py
-        ./waf configure
-        ./waf build
-        run_with_sudo ./waf install
-        print_success "mpv installed from source"
-    else
-        print_error "Failed to build mpv from source"
-        return 1
-    fi
-}
-
-# Install yt-dlp from official source
-install_ytdlp() {
-    if command_exists yt-dlp; then
-        print_status "yt-dlp is already installed"
-        return 0
-    fi
-
-    print_status "Installing yt-dlp from official source..."
-    
-    # Download yt-dlp directly from GitHub
-    YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
-    
-    print_status "Downloading yt-dlp from: $YTDLP_URL"
-    
-    # Save current directory
-    local current_dir=$(pwd)
-    
-    # Download and install
-    cd /tmp
-    if curl -L "$YTDLP_URL" -o yt-dlp; then
-        chmod +x yt-dlp
-        run_with_sudo cp yt-dlp /usr/local/bin/
-        rm -f yt-dlp
-        print_success "yt-dlp installed successfully"
-    else
-        print_error "Failed to download yt-dlp"
-        cd "$current_dir"
-        return 1
-    fi
-    
-    # Return to original directory
-    cd "$current_dir"
-}
+# Install required dependencies
+install_package go "Go programming language"
+install_package mpv "mpv media player"
+install_package fzf "fzf fuzzy finder"
+install_package chafa "chafa terminal image preview"
 
 # Clone and build GopherTube
 build_gophertube() {
@@ -428,10 +272,16 @@ test_installation() {
         print_warning "mpv not found - video playback may not work"
     fi
     
-    if command_exists yt-dlp; then
-        print_success "yt-dlp is available"
+    if command_exists fzf; then
+        print_success "fzf is available"
     else
-        print_warning "yt-dlp not found - search may not work"
+        print_warning "fzf not found - search may not work"
+    fi
+
+    if command_exists chafa; then
+        print_success "chafa is available"
+    else
+        print_warning "chafa not found - image preview may not work"
     fi
 }
 
@@ -479,27 +329,10 @@ main() {
         echo "If you still have issues, please report them on GitHub."
         exit 1
     }
-    install_go || {
-        echo -e "\nIf this script fails, try manual installation:"
-        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
-        echo "  cd GopherTube && make install"
-        echo "If you still have issues, please report them on GitHub."
-        exit 1
-    }
-    install_mpv || {
-        echo -e "\nIf this script fails, try manual installation:"
-        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
-        echo "  cd GopherTube && make install"
-        echo "If you still have issues, please report them on GitHub."
-        exit 1
-    }
-    install_ytdlp || {
-        echo -e "\nIf this script fails, try manual installation:"
-        echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"
-        echo "  cd GopherTube && make install"
-        echo "If you still have issues, please report them on GitHub."
-        exit 1
-    }
+    install_package go "Go programming language"
+    install_package mpv "mpv media player"
+    install_package fzf "fzf fuzzy finder"
+    install_package chafa "chafa terminal image preview"
     build_gophertube || {
         echo -e "\nIf this script fails, try manual installation:"
         echo "  git clone https://github.com/KrishnaSSH/GopherTube.git"

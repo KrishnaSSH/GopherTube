@@ -21,7 +21,8 @@
 
           buildInputs = with pkgs; [
             mpv
-            yt-dlp
+            fzf
+            chafa
           ];
 
           nativeBuildInputs = with pkgs; [
@@ -50,7 +51,8 @@
           ];
           buildInputs = with pkgs; [
             mpv
-            yt-dlp
+            fzf
+            chafa
           ];
         };
       };
