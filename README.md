@@ -69,8 +69,8 @@ sudo apt install mpv fzf chafa
 # macOS
 brew install mpv fzf chafa
 
-# Arch Linux
-sudo pacman -S mpv fzf chafa
+# Arch Linux (recommended)
+yay -S gophertube
 ```
 
 ---
