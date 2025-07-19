@@ -22,5 +22,5 @@ package() {
   install -Dm755 gophertube "$pkgdir/usr/bin/gophertube"
   install -Dm644 man/gophertube.1 "$pkgdir/usr/share/man/man1/gophertube.1"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-  install -Dm644 config/gophertube.yaml "$pkgdir/usr/share/doc/$pkgname/gophertube.yaml.example"
+  install -Dm644 config/gophertube.toml "$pkgdir/usr/share/doc/$pkgname/gophertube.toml.example"
 } 

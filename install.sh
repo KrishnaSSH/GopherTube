@@ -242,9 +242,9 @@ install_system_wide() {
         
         # Create config directory and copy example
         mkdir -p "$CONFIG_DIR"
-        if [ -f "config/gophertube.yaml" ]; then
-            cp config/gophertube.yaml "$CONFIG_DIR/gophertube.yaml"
-            print_status "Configuration file created at $CONFIG_DIR/gophertube.yaml"
+        if [ -f "config/gophertube.toml" ]; then
+            cp config/gophertube.toml "$CONFIG_DIR/gophertube.toml"
+            print_status "Configuration file created at $CONFIG_DIR/gophertube.toml"
         fi
         
         print_success "GopherTube installed system-wide!"

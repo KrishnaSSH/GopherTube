@@ -1,7 +1,6 @@
 # GopherTube Configuration File
-# Copy this file to ~/.config/gophertube/gophertube.yaml and customize as needed
+# Copy this file to ~/.config/gophertube/gophertube.toml and customize as needed
 
 # Number of search results to fetch
 # Default: 30 (lower it to increase speed)
-search_limit: 30
-
+search_limit = 30 

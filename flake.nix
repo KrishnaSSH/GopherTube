@@ -42,7 +42,7 @@
             mkdir -p $out/share/man/man1
             cp $src/man/gophertube.1 $out/share/man/man1
             mkdir -p $out/config
-            cp $src/config/gophertube.yaml $out/config/gophertube.yaml.example
+            cp $src/config/gophertube.toml $out/config/gophertube.toml.example
           '';
         };
         devShells.default = pkgs.mkShell {

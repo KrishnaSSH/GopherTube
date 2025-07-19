@@ -14,9 +14,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
-func SearchYouTube(query string, limit int) ([]types.Video, error) {
+func SearchYouTube(query string, limit int, progress func(current, total int)) ([]types.Video, error) {
 	url := "https://www.youtube.com/results?search_query=" + urlQueryEscape(query)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -48,7 +49,6 @@ func SearchYouTube(query string, limit int) ([]types.Video, error) {
 			if vr, ok := m["videoRenderer"]; ok {
 				v := parseVideoRenderer(vr)
 				if v.Title != "" && v.URL != "" {
-					v.ThumbnailPath = cacheThumbnail(v.Thumbnail)
 					videos = append(videos, v)
 				}
 			}
@@ -69,6 +69,34 @@ func SearchYouTube(query string, limit int) ([]types.Video, error) {
 	if len(videos) > limit {
 		videos = videos[:limit]
 	}
+
+	// Download thumbnails with progress (bounded parallelism)
+	concurrency := 16
+	sem := make(chan struct{}, concurrency)
+	total := len(videos)
+	if progress != nil {
+		progress(0, total)
+	}
+	done := 0
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	wg.Add(total)
+	for i := range videos {
+		sem <- struct{}{}
+		go func(i int) {
+			videos[i].ThumbnailPath = cacheThumbnail(videos[i].Thumbnail)
+			mu.Lock()
+			done++
+			if progress != nil {
+				progress(done, total)
+			}
+			mu.Unlock()
+			<-sem
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
 	return videos, nil
 }
 

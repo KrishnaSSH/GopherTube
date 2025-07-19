@@ -44,7 +44,7 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 - Play videos with [mpv](https://mpv.io/)
 - Minimal terminal UI (fzf)
 - Keyboard navigation (arrows, Enter, Tab, Esc, g/G)
-- YAML config for paths(for dependencies) and settings
+- TOML config for paths(for dependencies) and settings
 
 ## Who is this Project for?
 - This Project is for everyone who enjoys Terminal apps
@@ -113,10 +113,10 @@ go build -o gophertube
 
 ## Configuration
 
-Create `~/.config/gophertube/gophertube.yaml`:
+Create `~/.config/gophertube/gophertube.toml`:
 
-```yaml
-search_limit: 30
+```toml
+search_limit = 30
 ```
 
 ---
@@ -131,7 +131,7 @@ GopherTube/
 ├── go.sum
 ├── LICENSE
 ├── config/
-│   └── gophertube.yaml.example
+│   └── gophertube.toml
 ├── man/
 │   └── gophertube.1
 └── internal/

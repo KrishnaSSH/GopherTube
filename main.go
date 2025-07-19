@@ -10,23 +10,26 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
-	"golang.org/x/term"
-	"gopkg.in/yaml.v3"
+	"github.com/BurntSushi/toml"
+	"github.com/chzyer/readline"
 )
 
 var version = "dev"
 
 type Config struct {
-	SearchLimit int `yaml:"search_limit"`
+	SearchLimit int `toml:"search_limit"`
 }
 
 func loadConfig() int {
 	cfg := Config{SearchLimit: 30}
-	data, err := ioutil.ReadFile(os.ExpandEnv("$HOME/.config/gophertube/gophertube.yaml"))
+	data, err := ioutil.ReadFile(os.ExpandEnv("$HOME/.config/gophertube/gophertube.toml"))
 	if err == nil {
-		yaml.Unmarshal(data, &cfg)
+		toml.Unmarshal(data, &cfg)
 	}
 	if cfg.SearchLimit <= 0 {
 		cfg.SearchLimit = 30
@@ -34,52 +37,113 @@ func loadConfig() int {
 	return cfg.SearchLimit
 }
 
+func printBanner() {
+	fmt.Print("\033[2J\033[H")
+	fmt.Println()
+	fmt.Println("    \033[1;33mGopherTube\033[0m")
+	fmt.Println("    \033[0;37mversion " + version + "\033[0m")
+	fmt.Println()
+	fmt.Println()
+}
+
+func printSearchPrompt(query string) {
+	fmt.Print("\033[2K\r")
+	fmt.Print("    \033[1;32mSearch\033[0m ")
+	fmt.Print("\033[1;37m" + query + "\033[0m")
+	fmt.Print("\033[1;30m█\033[0m")
+}
+
+func printSearchingAnimation(query string) {
+	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	for i := 0; i < 2; i++ {
+		for _, frame := range frames {
+			fmt.Print("\033[2K\r")
+			fmt.Printf("    \033[1;33m%s\033[0m \033[0;37mSearching for '%s'...\033[0m", frame, query)
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
+func printProgressBar(current, total int) {
+	width := 35
+	filled := (current * width) / total
+	bar := "\033[1;32m"
+	for i := 0; i < width; i++ {
+		if i < filled {
+			bar += "█"
+		} else {
+			bar += "░"
+		}
+	}
+	bar += "\033[0m"
+	fmt.Printf("\033[2K\r    %s %d/%d", bar, current, total)
+}
+
 func readQuery() (string, bool) {
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	printBanner()
+	fmt.Print("    \033[1;32mSearch\033[0m ")
+
+	// Use raw terminal mode for proper key detection
+	oldState, err := readline.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", false
 	}
-	defer term.Restore(int(os.Stdin.Fd()), oldState)
+	defer readline.Restore(int(os.Stdin.Fd()), oldState)
 
 	var query []rune
-	buf := make([]byte, 1)
+	buf := make([]byte, 4)
+
 	for {
-		fmt.Print("\033[2J\033[H> " + string(query))
-		os.Stdout.Sync()
 		n, err := os.Stdin.Read(buf)
 		if err != nil || n == 0 {
 			break
 		}
-		if buf[0] == 27 { // ESC
-			fmt.Print("\033[2J\033[H")
-			return "", true
+
+		// Handle escape sequences
+		if buf[0] == 27 {
+			if n == 1 {
+				// Just Escape key pressed
+				return "", true
+			}
+			continue
 		}
+
+		// Handle special keys
 		if buf[0] == 13 { // Enter
+			fmt.Println()
 			break
+		}
+		if buf[0] == 3 { // Ctrl+C
+			return "", true
 		}
 		if buf[0] == 127 && len(query) > 0 { // Backspace
 			query = query[:len(query)-1]
-		} else if buf[0] >= 32 && buf[0] < 127 {
+			fmt.Print("\033[D \033[D")
+		} else if buf[0] >= 32 && buf[0] < 127 { // Printable characters
 			query = append(query, rune(buf[0]))
+			fmt.Printf("%c", buf[0])
 		}
 	}
+
 	return string(query), false
 }
 
 func printHelp() {
-	fmt.Print(`GopherTube - Terminal YouTube Search & Play
-
-Usage:
-  gophertube [options]
-
-Options:
-  -h, --help      Show this help message and exit
-  -v, --version   Show version and exit
-`)
+	fmt.Print("\033[1;36mGopherTube - Terminal YouTube Search & Play\033[0m\n\n")
+	fmt.Print("\033[1;33mUsage:\033[0m\n")
+	fmt.Print("  gophertube [options]\n\n")
+	fmt.Print("\033[1;33mOptions:\033[0m\n")
+	fmt.Print("  -h, --help      Show this help message and exit\n")
+	fmt.Print("  -v, --version   Show version and exit\n\n")
+	fmt.Print("\033[1;33mControls:\033[0m\n")
+	fmt.Print("  • Type your search query and press Enter\n")
+	fmt.Print("  • Use ↑/↓ to navigate results\n")
+	fmt.Print("  • Press Tab to load more results\n")
+	fmt.Print("  • Press Esc to go back or exit\n")
 }
 
 func printVersion() {
-	fmt.Println("GopherTube version", version)
+	fmt.Printf("\033[1;36mGopherTube\033[0m version \033[1;33m%s\033[0m\n", version)
 }
 
 func main() {
@@ -99,18 +163,44 @@ func main() {
 		printVersion()
 		return
 	}
+
+	// Handle Ctrl+C gracefully
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		fmt.Println("\n\033[1;33mExiting...\033[0m")
+		os.Exit(0)
+	}()
+
 	for {
 		query, esc := readQuery()
 		if esc || query == "" {
 			fmt.Print("\033[2J\033[H")
 			return
 		}
+
+		printSearchingAnimation(query)
+		fmt.Println()
+		fmt.Println()
+
 		limit := loadConfig()
-		videos, err := services.SearchYouTube(query, limit)
+		videos, err := services.SearchYouTube(query, limit, printProgressBar)
+		fmt.Println()
+		fmt.Println()
+
 		if err != nil || len(videos) == 0 {
-			fmt.Println("No results.")
+			fmt.Println("    \033[1;31mNo results found.\033[0m")
+			fmt.Println()
+			fmt.Println("    \033[0;37mPress any key to search again...\033[0m")
+			os.Stdin.Read(make([]byte, 1))
 			continue
 		}
+
+		fmt.Printf("    \033[1;32mFound %d results!\033[0m\n", len(videos))
+		fmt.Println()
+		time.Sleep(500 * time.Millisecond)
+
 		selected := runFzf(videos, limit, query)
 		if selected == -2 {
 			continue // go back to search
@@ -118,6 +208,9 @@ func main() {
 		if selected < 0 || selected >= len(videos) {
 			continue
 		}
+
+		fmt.Printf("    \033[1;33mPlaying: %s\033[0m\n", videos[selected].Title)
+		fmt.Println()
 		mpvPath := "mpv"
 		exec.Command(mpvPath, videos[selected].URL).Run()
 	}
@@ -134,7 +227,7 @@ func runFzf(videos []types.Video, limit int, query string) int {
 		fzfArgs := []string{
 			"--with-nth=2..2",
 			"--delimiter=\t",
-			"--header=↑/↓ to move, type to search, Enter to select, Tab to load more",
+			"--header=\033[1;36m↑/↓\033[0m to move, \033[1;33mtype\033[0m to search, \033[1;32mEnter\033[0m to select, \033[1;35mTab\033[0m to load more",
 			"--expect=tab",
 			"--bind=esc:abort",
 			"--preview",
@@ -149,7 +242,7 @@ func runFzf(videos []types.Video, limit int, query string) int {
 		cmd.Stdout = pw
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
-			fmt.Println("fzf error:", err)
+			fmt.Println("\033[1;31mfzf error:\033[0m", err)
 			return -1
 		}
 		pw.Close()
@@ -160,12 +253,14 @@ func runFzf(videos []types.Video, limit int, query string) int {
 			return -2 // user pressed escape in fzf
 		}
 		if lines[0] == "tab" {
+			fmt.Printf("    \033[1;35mLoading more results...\033[0m\n")
 			limit += loadConfig()
-			moreVideos, err := services.SearchYouTube(query, limit)
+			moreVideos, err := services.SearchYouTube(query, limit, printProgressBar)
 			if err != nil || len(moreVideos) == len(videos) {
 				continue
 			}
 			videos = moreVideos
+			fmt.Printf("    \033[1;32mLoaded %d more results!\033[0m\n", len(videos)-len(videos)+limit)
 			continue
 		}
 		line := lines[0]
