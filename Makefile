@@ -22,4 +22,7 @@ build:
 fmt:
 	go fmt ./...
 	go mod tidy
+
+run:
+	go run .
 	
