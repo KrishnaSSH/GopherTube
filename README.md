@@ -121,29 +121,6 @@ search_limit = 30
 
 ---
 
-## Project Structure
-
-```
-GopherTube/
-├── main.go
-├── Makefile
-├── go.mod
-├── go.sum
-├── LICENSE
-├── config/
-│   └── gophertube.toml
-├── man/
-│   └── gophertube.1
-└── internal/
-    ├── app/
-    ├── components/
-    ├── services/
-    ├── types/
-    ├── constants/
-    ├── utils/
-    └── errors/
-```
-
 ## TODO
 
 - [x] Add thumbnails support
