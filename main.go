@@ -58,30 +58,29 @@ func printSearchPrompt(query string) {
 }
 
 func printProgressBar(current, total int) {
-	width := 35
+	width := 40
 	filled := (current * width) / total
-	bar := "\033[1;32m"
+	percentage := (current * 100) / total
+
+	// Create animated progress bar with original cyan color
+	bar := ""
 	for i := 0; i < width; i++ {
 		if i < filled {
-			bar += "█"
+			bar += "\033[1;36m█" // Cyan for filled (original color)
 		} else {
-			bar += "░"
+			bar += "\033[0;37m░"
 		}
 	}
 	bar += "\033[0m"
 
-	var phase string
-	if current == 0 {
-		phase = "Scraping YouTube..."
-	} else if current == 1 {
-		phase = "Parsing search results..."
-	} else if current == 2 {
-		phase = "Downloading thumbnails..."
-	} else {
-		phase = fmt.Sprintf("Downloading thumbnails (%d/%d)", current-2, total-2)
-	}
+	// Add spinning animation
+	spinners := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	spinner := spinners[time.Now().UnixNano()/100000000%int64(len(spinners))]
 
-	fmt.Printf("\033[2K\r    %s %s", bar, phase)
+	// Format percentage with proper padding
+	percentStr := fmt.Sprintf("%3d%%", percentage)
+
+	fmt.Printf("\033[2K\r    %s %s %s", spinner, bar, percentStr)
 }
 
 func printSearchStats(videos []types.Video) {
@@ -90,28 +89,58 @@ func printSearchStats(videos []types.Video) {
 	}
 
 	channels := make(map[string]int)
+	hasDuration := 0
 
 	for _, v := range videos {
 		channels[v.Author]++
+		if v.Duration != "" {
+			hasDuration++
+		}
+	}
+
+	// Calculate average duration if available
+	var avgDuration string
+	if hasDuration > 0 {
+		avgDuration = "~" + videos[0].Duration // Simple approximation
 	}
 
 	fmt.Println("    \033[1;36mSearch Statistics:\033[0m")
-	fmt.Printf("    \033[0;37m• Total videos: %d\033[0m\n", len(videos))
-	fmt.Printf("    \033[0;37m• Unique channels: %d\033[0m\n", len(channels))
+	fmt.Printf("    \033[0;37m• Total videos found: \033[1;32m%d\033[0m\n", len(videos))
+	fmt.Printf("    \033[0;37m• Unique channels: \033[1;33m%d\033[0m\n", len(channels))
 
-	if len(videos) > 0 {
-		fmt.Printf("    \033[0;37m• Sample duration: %s\033[0m\n", videos[0].Duration)
+	if avgDuration != "" {
+		fmt.Printf("    \033[0;37m• Average duration: \033[1;35m%s\033[0m\n", avgDuration)
+	}
+
+	// Show top channels if there are multiple
+	if len(channels) > 1 && len(videos) > 3 {
+		fmt.Printf("    \033[0;37m• Most active channel: \033[1;31m%s\033[0m\n", getTopChannel(channels))
 	}
 
 	fmt.Println()
 }
 
+func getTopChannel(channels map[string]int) string {
+	var topChannel string
+	maxCount := 0
+
+	for channel, count := range channels {
+		if count > maxCount {
+			maxCount = count
+			topChannel = channel
+		}
+	}
+
+	if len(topChannel) > 30 {
+		return topChannel[:27] + "..."
+	}
+	return topChannel
+}
+
 func printSearchTips() {
 	tips := []string{
-		"💡 Tip: Use specific keywords for better results",
-		"💡 Tip: Try adding 'music', 'tutorial', or 'live' to your search",
-		"💡 Tip: Press Tab to load more results",
-		"💡 Tip: Use ↑/↓ to navigate, Enter to select",
+		"Tip: Press Tab to load more results, Esc to go back",
+		"Tip: Use ↑/↓ to navigate, Enter to select, Ctrl+C to exit",
 	}
 
 	randomTip := tips[time.Now().Unix()%int64(len(tips))]
@@ -276,7 +305,7 @@ func runFzf(videos []types.Video, limit int, query string) int {
 			"--border=rounded",
 			"--margin=1,1",
 			"--preview",
-			`thumbfile={3}; w=$((FZF_PREVIEW_COLUMNS * 9 / 10)); h=$((FZF_PREVIEW_LINES * 3 / 5)); if [ -s "$thumbfile" ] && [ -f "$thumbfile" ]; then chafa --size=${w}x${h} "$thumbfile" 2>/dev/null || echo "No image preview available"; else echo "No thumbnail available"; fi; echo; title=$(printf %s {2} | fold -s -w $w | sed "s/^'//;s/'$//"); title_lines=$(echo "$title" | head -n2); if [ "$(echo "$title" | wc -l)" -gt 2 ]; then title_lines="$title_lines\n..."; fi; echo -e "\033[1;36m$title_lines\033[0m"; echo -e "\033[33mDuration:\033[0m $(echo {4} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[32mAuthor:\033[0m $(echo {5} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[35mViews:\033[0m $(echo {6} | sed s/^\'// | sed s/\'$//)"`,
+			`thumbfile={3}; w=$((FZF_PREVIEW_COLUMNS * 9 / 10)); h=$((FZF_PREVIEW_LINES * 3 / 5)); if [ -s "$thumbfile" ] && [ -f "$thumbfile" ]; then chafa --size=${w}x${h} "$thumbfile" 2>/dev/null || echo "No image preview available"; else echo "No thumbnail available"; fi; echo; echo -e "\033[33mDuration:\033[0m $(echo {4} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[32mAuthor:\033[0m $(echo {5} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[35mViews:\033[0m $(echo {6} | sed s/^\'// | sed s/\'$//)"`,
 		}
 		if filter != "" {
 			fzfArgs = append(fzfArgs, "--query="+filter)

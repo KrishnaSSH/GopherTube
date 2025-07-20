@@ -37,14 +37,17 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
   <br><em>searching for videos</em>
 </p>
 
+**Demo Video**  
+Watch the demo video [here](https://github.com/KrishnaSSH/GopherTube/raw/main/demo.mp4)
+
 
 ## Features
 
 - **Fast YouTube search** (scrapes YouTube directly, no API key needed)
 - Play videos with [mpv](https://mpv.io/)
 - Minimal terminal UI (fzf)
-- Keyboard navigation (arrows, Enter, Tab, Esc, g/G)
-- TOML config for paths(for dependencies) and settings
+- Keyboard navigation (arrows, Enter, Tab, Esc)
+- TOML config 
 
 ## Who is this Project for?
 - This Project is for everyone who enjoys Terminal apps

@@ -187,39 +187,13 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 		progress(2, 2+len(videos))
 	}
 
-	// Lazy thumbnail loading - only load first few thumbnails immediately
-	immediateThumbs := 5
-	if immediateThumbs > len(videos) {
-		immediateThumbs = len(videos)
-	}
-
-	// Load immediate thumbnails
+	// Load all thumbnails concurrently for faster loading
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	done := 0
 
-	// Load first few thumbnails immediately
-	for i := 0; i < immediateThumbs; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			thumbPath := cacheThumbnailOptimized(videos[i].Thumbnail)
-			if thumbPath == "" && videos[i].Thumbnail != "" {
-				thumbPath = tryFallbackThumbnails(videos[i].Thumbnail)
-			}
-			videos[i].ThumbnailPath = thumbPath
-
-			mu.Lock()
-			done++
-			if progress != nil {
-				progress(2+done, 2+len(videos))
-			}
-			mu.Unlock()
-		}(i)
-	}
-
-	// Load remaining thumbnails in background
-	for i := immediateThumbs; i < len(videos); i++ {
+	// Load all thumbnails concurrently
+	for i := 0; i < len(videos); i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -277,45 +251,60 @@ func cacheThumbnailOptimized(url string) string {
 		return thumbPath
 	}
 
-	// Use the optimized HTTP client instead of creating new ones
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return ""
+	// Try multiple times with different timeouts
+	for attempt := 0; attempt < 3; attempt++ {
+		timeout := time.Duration(2+attempt) * time.Second
+		client := &http.Client{
+			Timeout: timeout,
+			Transport: &http.Transport{
+				MaxIdleConns:        10,
+				MaxIdleConnsPerHost: 5,
+				IdleConnTimeout:     30 * time.Second,
+				DisableCompression:  false,
+			},
+		}
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			continue
+		}
+
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+		req.Header.Set("Accept", "image/webp,image/apng,image/*,*/*;q=0.8")
+		req.Header.Set("Accept-Encoding", "gzip, deflate")
+		req.Header.Set("Connection", "keep-alive")
+		req.Header.Set("Cache-Control", "no-cache")
+		req.Header.Set("Referer", "https://www.youtube.com/")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			continue
+		}
+
+		data, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+		if err != nil || len(data) == 0 || isHTML(data) {
+			continue
+		}
+
+		tempPath := thumbPath + ".tmp"
+		if err := ioutil.WriteFile(tempPath, data, 0o644); err != nil {
+			continue
+		}
+
+		if err := os.Rename(tempPath, thumbPath); err != nil {
+			os.Remove(tempPath)
+			continue
+		}
+
+		return thumbPath
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-	req.Header.Set("Accept", "image/webp,image/apng,image/*,*/*;q=0.8")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Referer", "https://www.youtube.com/")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return ""
-	}
-
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 256*1024)) // Reduced limit for faster loading
-	if err != nil || len(data) == 0 || isHTML(data) {
-		return ""
-	}
-
-	tempPath := thumbPath + ".tmp"
-	if err := ioutil.WriteFile(tempPath, data, 0o644); err != nil {
-		return ""
-	}
-
-	if err := os.Rename(tempPath, thumbPath); err != nil {
-		os.Remove(tempPath)
-		return ""
-	}
-
-	return thumbPath
+	return ""
 }
 
 // CleanupHTTPConnections closes idle connections to prevent memory leaks
