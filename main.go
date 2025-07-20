@@ -258,7 +258,7 @@ func runFzf(videos []types.Video, limit int, query string) int {
 				continue
 			}
 			videos = moreVideos
-			fmt.Printf("    \033[1;32mLoaded %d more results!\033[0m\n", len(videos)-len(videos)+limit)
+			fmt.Printf("    \033[1;32mLoaded %d more results!\033[0m\n", len(videos))
 			continue
 		}
 		line := lines[0]
