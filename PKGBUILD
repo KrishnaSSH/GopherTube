@@ -1,6 +1,6 @@
 # Maintainer: KrishnaSSH krishna.pytech@gmail.com
 pkgname=gophertube
-pkgver=2.2.0
+pkgver=
 pkgrel=1
 pkgdesc="Minimal terminal YouTube client with mpv, fzf, and chafa previews"
 arch=('x86_64' 'aarch64')
@@ -9,7 +9,7 @@ license=('GPL3')
 depends=('mpv' 'fzf' 'chafa')
 makedepends=('go' 'git')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('ad7ea9fd70d4a6b1c9c0434fde186c5567f22e1d06d67ffd912920e7253c0f0f')
+sha256sums=('')
 
 build() {
   cd "$srcdir/GopherTube-$pkgver"
