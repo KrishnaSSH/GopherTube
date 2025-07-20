@@ -59,6 +59,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: gophertube-${{ env.VERSION }}-amd64.deb
+          update_existing: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -66,5 +67,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: gophertube-${{ env.VERSION }}-amd64.rpm
+          update_existing: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
