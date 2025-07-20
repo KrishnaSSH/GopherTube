@@ -1,0 +1,63 @@
+name: Update AUR Package
+
+on:
+  workflow_run:
+    workflows: ["Release Packages"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  update-aur:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          VERSION=${LATEST_TAG#v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG=$LATEST_TAG" >> $GITHUB_ENV
+
+      - name: Download source and calculate checksum
+        run: |
+          wget -O gophertube-${{ env.VERSION }}.tar.gz https://github.com/${{ github.repository }}/archive/refs/tags/v${{ env.VERSION }}.tar.gz
+          echo "CHECKSUM=$(sha256sum gophertube-${{ env.VERSION }}.tar.gz | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Setup SSH for AUR
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AUR_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+
+      - name: Clone AUR repository
+        run: |
+          git clone ssh://aur@aur.archlinux.org/gophertube.git aur-gophertube
+          cd aur-gophertube
+
+      - name: Update AUR PKGBUILD
+        run: |
+          cd aur-gophertube
+          sed -i "s/pkgver=.*/pkgver=${{ env.VERSION }}/" PKGBUILD
+          sed -i "s/sha256sums=('.*')/sha256sums=('${{ env.CHECKSUM }}')/" PKGBUILD
+
+      - name: Generate .SRCINFO
+        run: |
+          cd aur-gophertube
+          makepkg --printsrcinfo > .SRCINFO
+
+      - name: Commit and push AUR changes
+        run: |
+          cd aur-gophertube
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to v${{ env.VERSION }}"
+          git push origin master 
