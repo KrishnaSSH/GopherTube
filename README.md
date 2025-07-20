@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://go.dev/blog/gopher/header.jpg" alt="Go Gopher" width="100%">
+  <img src=".assets/logo.png" alt="GopherTube Logo" width="300" />
 </div>
 
 # GopherTube
