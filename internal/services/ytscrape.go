@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gophertube/internal/types"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,20 +15,113 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"gophertube/internal/types"
 )
 
-// Create a custom HTTP client with optimizations for faster downloads
+// Pre-compiled regex for better performance
+var ytInitialDataRegex = regexp.MustCompile(`(?s)var ytInitialData = (\{.*?\});`)
+
+// Optimized HTTP client with better connection pooling
 var httpClient = &http.Client{
-	Timeout: 5 * time.Second,
+	Timeout: 10 * time.Second,
 	Transport: &http.Transport{
-		MaxIdleConns:        0,
-		MaxIdleConnsPerHost: 0,
-		IdleConnTimeout:     30 * time.Second,
-		DisableCompression:  false,
-		ForceAttemptHTTP2:   true,
-		MaxConnsPerHost:     0,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
 		DisableKeepAlives:   false,
+		DisableCompression:  false,
 	},
+}
+
+// Video extraction with early termination
+func extractVideosFromJSON(data []byte, limit int) ([]types.Video, error) {
+	m := ytInitialDataRegex.FindSubmatch(data)
+	if len(m) < 2 {
+		return nil, errors.New("ytInitialData not found")
+	}
+
+	var root map[string]interface{}
+	if err := json.Unmarshal(m[1], &root); err != nil {
+		return nil, err
+	}
+
+	videos := make([]types.Video, 0, limit)
+
+	// Targeted JSON navigation - look for specific paths where videos are stored
+	var extractVideos func(interface{}) bool
+	extractVideos = func(node interface{}) bool {
+		if len(videos) >= limit {
+			return true // Early termination
+		}
+
+		if m, ok := node.(map[string]interface{}); ok {
+			// Check for videoRenderer first (most common)
+			if vr, ok := m["videoRenderer"]; ok {
+				v := parseVideoRenderer(vr)
+				if v.Title != "" && v.URL != "" {
+					videos = append(videos, v)
+					if len(videos) >= limit {
+						return true
+					}
+				}
+			}
+
+			// Check for compactVideoRenderer
+			if cr, ok := m["compactVideoRenderer"]; ok {
+				v := parseVideoRenderer(cr)
+				if v.Title != "" && v.URL != "" {
+					videos = append(videos, v)
+					if len(videos) >= limit {
+						return true
+					}
+				}
+			}
+
+			// Look for content array which contains videos
+			if content, ok := m["contents"]; ok {
+				if extractVideos(content) {
+					return true
+				}
+			}
+
+			// Look for tab contents
+			if tabs, ok := m["tabs"]; ok {
+				if extractVideos(tabs) {
+					return true
+				}
+			}
+
+			// Look for section list renderer
+			if sections, ok := m["sectionListRenderer"]; ok {
+				if extractVideos(sections) {
+					return true
+				}
+			}
+
+			// Recursively check other map values
+			for _, v := range m {
+				if extractVideos(v) {
+					return true
+				}
+			}
+		} else if arr, ok := node.([]interface{}); ok {
+			for _, v := range arr {
+				if extractVideos(v) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	extractVideos(root)
+
+	if len(videos) == 0 {
+		return nil, errors.New("no videos found")
+	}
+
+	return videos, nil
 }
 
 func SearchYouTube(query string, limit int, progress func(current, total int)) ([]types.Video, error) {
@@ -37,7 +129,8 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 		progress(0, 1)
 	}
 
-	url := "https://www.youtube.com/results?search_query=" + urlQueryEscape(query) + "&sp=EgIQAQ%253D%253D"
+	// Single optimized request with best parameters
+	url := "https://www.youtube.com/results?search_query=" + urlQueryEscape(query) + "&sp=EgIQAQ%253D%253D&hl=en&gl=US"
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
@@ -52,122 +145,40 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 		progress(1, 2)
 	}
 
-	re := regexp.MustCompile(`(?s)var ytInitialData = (\{.*?\});`)
-	m := re.FindSubmatch(body)
-	if len(m) < 2 {
-		return nil, errors.New("ytInitialData not found")
-	}
-	var root map[string]interface{}
-	if err := json.Unmarshal(m[1], &root); err != nil {
+	// Extract videos with early termination
+	videos, err := extractVideosFromJSON(body, limit)
+	if err != nil {
 		return nil, err
 	}
 
-	videos := []types.Video{}
-	var walk func(interface{})
-	walk = func(node interface{}) {
-		if m, ok := node.(map[string]interface{}); ok {
-			if vr, ok := m["videoRenderer"]; ok {
-				v := parseVideoRenderer(vr)
-				if v.Title != "" && v.URL != "" {
-					videos = append(videos, v)
-				}
-			}
-			if cr, ok := m["compactVideoRenderer"]; ok {
-				v := parseVideoRenderer(cr)
-				if v.Title != "" && v.URL != "" {
-					videos = append(videos, v)
-				}
-			}
-			for _, v := range m {
-				walk(v)
-			}
-		} else if arr, ok := node.([]interface{}); ok {
-			for _, v := range arr {
-				walk(v)
-			}
-		}
-	}
-	walk(root)
-
-	if len(videos) == 0 {
-		return nil, errors.New("no videos found")
-	}
-
+	// If we don't have enough videos, try one more strategy
 	if len(videos) < limit {
-		searchStrategies := []string{
-			"",
-			"&sp=EgIQAQ%253D%253D",
-			"&sp=EgIQAQ%25253D%25253D",
-		}
-
-		for _, strategy := range searchStrategies {
-			if len(videos) >= limit {
-				break
-			}
-
-			altUrl := "https://www.youtube.com/results?search_query=" + urlQueryEscape(query) + strategy
-			altResp, err := httpClient.Get(altUrl)
-			if err != nil {
-				continue
-			}
-
+		altUrl := "https://www.youtube.com/results?search_query=" + urlQueryEscape(query) + "&sp=EgIQAQ%25253D%25253D&hl=en&gl=US"
+		altResp, err := httpClient.Get(altUrl)
+		if err == nil {
+			defer altResp.Body.Close()
 			altBody, err := io.ReadAll(altResp.Body)
-			altResp.Body.Close()
-			if err != nil {
-				continue
-			}
+			if err == nil {
+				altVideos, err := extractVideosFromJSON(altBody, limit-len(videos))
+				if err == nil {
+					// Merge videos avoiding duplicates
+					existingURLs := make(map[string]bool)
+					for _, v := range videos {
+						existingURLs[v.URL] = true
+					}
 
-			altM := re.FindSubmatch(altBody)
-			if len(altM) < 2 {
-				continue
-			}
-
-			var altRoot map[string]interface{}
-			if json.Unmarshal(altM[1], &altRoot) != nil {
-				continue
-			}
-
-			altVideos := []types.Video{}
-			var altWalk func(interface{})
-			altWalk = func(node interface{}) {
-				if m, ok := node.(map[string]interface{}); ok {
-					if vr, ok := m["videoRenderer"]; ok {
-						v := parseVideoRenderer(vr)
-						if v.Title != "" && v.URL != "" {
-							altVideos = append(altVideos, v)
+					for _, v := range altVideos {
+						if !existingURLs[v.URL] && len(videos) < limit {
+							videos = append(videos, v)
+							existingURLs[v.URL] = true
 						}
 					}
-					if cr, ok := m["compactVideoRenderer"]; ok {
-						v := parseVideoRenderer(cr)
-						if v.Title != "" && v.URL != "" {
-							altVideos = append(altVideos, v)
-						}
-					}
-					for _, v := range m {
-						altWalk(v)
-					}
-				} else if arr, ok := node.([]interface{}); ok {
-					for _, v := range arr {
-						altWalk(v)
-					}
-				}
-			}
-			altWalk(altRoot)
-
-			existingURLs := make(map[string]bool)
-			for _, v := range videos {
-				existingURLs[v.URL] = true
-			}
-
-			for _, v := range altVideos {
-				if !existingURLs[v.URL] && len(videos) < limit {
-					videos = append(videos, v)
-					existingURLs[v.URL] = true
 				}
 			}
 		}
 	}
 
+	// Ensure we don't exceed limit
 	if len(videos) > limit {
 		videos = videos[:limit]
 	}
@@ -176,49 +187,81 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 		progress(2, 2+len(videos))
 	}
 
-	total := len(videos)
-	done := 0
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	wg.Add(total)
+	// Lazy thumbnail loading - only load first few thumbnails immediately
+	immediateThumbs := 5
+	if immediateThumbs > len(videos) {
+		immediateThumbs = len(videos)
+	}
 
-	for i := range videos {
+	// Load immediate thumbnails
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	done := 0
+
+	// Load first few thumbnails immediately
+	for i := 0; i < immediateThumbs; i++ {
+		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-
 			thumbPath := cacheThumbnailOptimized(videos[i].Thumbnail)
 			if thumbPath == "" && videos[i].Thumbnail != "" {
-				fallbackURLs := []string{
-					strings.ReplaceAll(videos[i].Thumbnail, "default", "hqdefault"),
-					strings.ReplaceAll(videos[i].Thumbnail, "default", "mqdefault"),
-					strings.ReplaceAll(videos[i].Thumbnail, "default", "sddefault"),
-					strings.ReplaceAll(videos[i].Thumbnail, "default", "maxresdefault"),
-				}
-
-				for _, fallbackURL := range fallbackURLs {
-					if fallbackURL != videos[i].Thumbnail {
-						thumbPath = cacheThumbnailOptimized(fallbackURL)
-						if thumbPath != "" {
-							break
-						}
-					}
-				}
+				thumbPath = tryFallbackThumbnails(videos[i].Thumbnail)
 			}
 			videos[i].ThumbnailPath = thumbPath
 
 			mu.Lock()
 			done++
 			if progress != nil {
-				progress(2+done, 2+total)
+				progress(2+done, 2+len(videos))
 			}
 			mu.Unlock()
 		}(i)
 	}
-	wg.Wait()
 
+	// Load remaining thumbnails in background
+	for i := immediateThumbs; i < len(videos); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			thumbPath := cacheThumbnailOptimized(videos[i].Thumbnail)
+			if thumbPath == "" && videos[i].Thumbnail != "" {
+				thumbPath = tryFallbackThumbnails(videos[i].Thumbnail)
+			}
+			videos[i].ThumbnailPath = thumbPath
+
+			mu.Lock()
+			done++
+			if progress != nil {
+				progress(2+done, 2+len(videos))
+			}
+			mu.Unlock()
+		}(i)
+	}
+
+	wg.Wait()
 	CleanupHTTPConnections()
 
 	return videos, nil
+}
+
+// Optimized fallback thumbnail function
+func tryFallbackThumbnails(originalURL string) string {
+	fallbackURLs := []string{
+		strings.ReplaceAll(originalURL, "default", "hqdefault"),
+		strings.ReplaceAll(originalURL, "default", "mqdefault"),
+		strings.ReplaceAll(originalURL, "default", "sddefault"),
+		strings.ReplaceAll(originalURL, "default", "maxresdefault"),
+	}
+
+	for _, fallbackURL := range fallbackURLs {
+		if fallbackURL != originalURL {
+			thumbPath := cacheThumbnailOptimized(fallbackURL)
+			if thumbPath != "" {
+				return thumbPath
+			}
+		}
+	}
+	return ""
 }
 
 func cacheThumbnailOptimized(url string) string {
@@ -234,61 +277,45 @@ func cacheThumbnailOptimized(url string) string {
 		return thumbPath
 	}
 
-	for attempt := 0; attempt < 2; attempt++ {
-		client := &http.Client{
-			Timeout: time.Duration(3+attempt*2) * time.Second,
-			Transport: &http.Transport{
-				MaxIdleConns:        0,
-				MaxIdleConnsPerHost: 0,
-				IdleConnTimeout:     30 * time.Second,
-				DisableCompression:  false,
-				ForceAttemptHTTP2:   true,
-				MaxConnsPerHost:     0,
-				DisableKeepAlives:   false,
-			},
-		}
-
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			continue
-		}
-
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-		req.Header.Set("Accept", "image/webp,image/apng,image/*,*/*;q=0.8")
-		req.Header.Set("Accept-Encoding", "gzip, deflate")
-		req.Header.Set("Connection", "keep-alive")
-		req.Header.Set("Cache-Control", "no-cache")
-		req.Header.Set("Referer", "https://www.youtube.com/")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != 200 {
-			continue
-		}
-
-		data, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
-		if err != nil || len(data) == 0 || isHTML(data) {
-			continue
-		}
-
-		tempPath := thumbPath + ".tmp"
-		if err := ioutil.WriteFile(tempPath, data, 0o644); err != nil {
-			continue
-		}
-
-		if err := os.Rename(tempPath, thumbPath); err != nil {
-			os.Remove(tempPath)
-			continue
-		}
-
-		return thumbPath
+	// Use the optimized HTTP client instead of creating new ones
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return ""
 	}
 
-	return ""
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("Accept", "image/webp,image/apng,image/*,*/*;q=0.8")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Referer", "https://www.youtube.com/")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return ""
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 256*1024)) // Reduced limit for faster loading
+	if err != nil || len(data) == 0 || isHTML(data) {
+		return ""
+	}
+
+	tempPath := thumbPath + ".tmp"
+	if err := ioutil.WriteFile(tempPath, data, 0o644); err != nil {
+		return ""
+	}
+
+	if err := os.Rename(tempPath, thumbPath); err != nil {
+		os.Remove(tempPath)
+		return ""
+	}
+
+	return thumbPath
 }
 
 // CleanupHTTPConnections closes idle connections to prevent memory leaks

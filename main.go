@@ -72,7 +72,7 @@ func printProgressBar(current, total int) {
 
 	var phase string
 	if current == 0 {
-		phase = "Searching YouTube..."
+		phase = "Scraping YouTube..."
 	} else if current == 1 {
 		phase = "Parsing search results..."
 	} else if current == 2 {
@@ -236,7 +236,8 @@ func main() {
 		fmt.Printf("    \033[1;32mFound %d results!\033[0m\n", len(videos))
 		printSearchStats(videos)
 		printSearchTips()
-		time.Sleep(500 * time.Millisecond)
+		// Reduced delay for faster response
+		time.Sleep(200 * time.Millisecond)
 
 		selected := runFzf(videos, limit, query)
 		if selected == -2 {
