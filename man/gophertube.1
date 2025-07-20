@@ -27,6 +27,12 @@ Scrapes YouTube directly, no API key needed
 .B Play videos with mpv
 Seamless playback using the mpv media player
 .TP
+.B Download videos with yt-dlp
+Select video quality and save to custom path
+.TP
+.B Downloads menu
+Browse and play downloaded videos
+.TP
 .B Terminal image previews
 Thumbnails shown in the terminal using chafa
 .TP
@@ -34,7 +40,7 @@ Thumbnails shown in the terminal using chafa
 Navigate with arrows, Enter, Tab, Esc
 .TP
 .B TOML config
-Configure search limit easily
+Configure search limit, default quality, and downloads path
 
 .SH KEYBOARD SHORTCUTS
 .TS
@@ -53,7 +59,7 @@ Esc	Go back / Quit
 Start the app:
 .B ./gophertube
 .PP
-Type a search and press Enter. Use ↑/↓ to move, Enter to play, Tab to load more, Esc to go back. Thumbnails and video info are shown in the preview. mpv opens to play the selected video.
+Type a search and press Enter. Use / to move, Enter to play, Tab to load more, Esc to go back. Thumbnails and video info are shown in the preview. mpv opens to play the selected video. Use the downloads menu to browse and play downloaded videos with thumbnail preview.
 
 .SH OPTIONS
 .TP
@@ -69,6 +75,8 @@ Create ~/.config/gophertube/gophertube.toml:
 .PP
 .nf
 search_limit = 30
+quality = "1080p"
+downloads_path = "/home/$USER/Videos/GopherTube"
 .fi
 
 .SH REQUIREMENTS
@@ -84,6 +92,9 @@ Fuzzy finder for interactive selection
 .TP
 .B chafa
 Terminal image preview
+.TP
+.B yt-dlp
+YouTube downloader for video downloads
 
 .SH INSTALLATION
 .SS Quick Install (One-liner)

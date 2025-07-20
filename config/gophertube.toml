@@ -4,3 +4,7 @@
 # Number of search results to fetch
 # Default: 30 (lower it to increase speed)
 search_limit = 30 
+# Default video quality (e.g. 1080p, 720p, 480p, 360p)
+quality = "1080p" 
+# Path to save downloaded videos (e.g. /home/user/Videos/GopherTube)
+downloads_path = "/home/$USER/Videos/GopherTube" 

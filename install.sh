@@ -15,21 +15,25 @@ install_deps() {
     print_status "Installing dependencies..."
     
     if command -v apt-get >/dev/null; then
-        sudo apt-get update && sudo apt-get install -y go mpv fzf chafa
+        sudo apt-get update && sudo apt-get install -y go mpv fzf chafa python3-pip
+        pip3 install -U yt-dlp
     elif command -v pacman >/dev/null; then
-        sudo pacman -S --noconfirm go mpv fzf chafa
+        sudo pacman -S --noconfirm go mpv fzf chafa yt-dlp
     elif command -v dnf >/dev/null; then
-        sudo dnf install -y go mpv fzf chafa
+        sudo dnf install -y go mpv fzf chafa python3-pip
+        pip3 install -U yt-dlp
     elif command -v yum >/dev/null; then
-        sudo yum install -y go mpv fzf chafa
+        sudo yum install -y go mpv fzf chafa python3-pip
+        pip3 install -U yt-dlp
     elif command -v zypper >/dev/null; then
-        sudo zypper install -y go mpv fzf chafa
+        sudo zypper install -y go mpv fzf chafa python3-pip
+        pip3 install -U yt-dlp
     elif command -v brew >/dev/null; then
-        brew install go mpv fzf chafa
+        brew install go mpv fzf chafa yt-dlp
     elif command -v pkg >/dev/null; then
-        sudo pkg install -y go mpv fzf chafa
+        sudo pkg install -y go mpv fzf chafa py39-yt-dlp
     elif command -v apk >/dev/null; then
-        sudo apk add go mpv fzf chafa
+        sudo apk add go mpv fzf chafa py3-yt-dlp
     else
         print_error "Unsupported package manager. Please perform manual installation."
         exit 1

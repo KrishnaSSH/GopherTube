@@ -47,7 +47,10 @@ Watch the demo video [here](https://github.com/KrishnaSSH/GopherTube/raw/refs/he
 - Play videos with [mpv](https://mpv.io/)
 - Minimal terminal UI (fzf)
 - Keyboard navigation (arrows, Enter, Tab, Esc)
-- TOML config 
+- TOML config
+- **Download videos** with quality selection ([yt-dlp](https://github.com/yt-dlp/yt-dlp))
+- **Downloads menu**: browse and play downloaded videos
+- **Thumbnail preview** in downloads menu
 
 ## Who is this Project for?
 - This Project is for everyone who enjoys Terminal apps
@@ -62,18 +65,20 @@ Watch the demo video [here](https://github.com/KrishnaSSH/GopherTube/raw/refs/he
 - [mpv](https://mpv.io/) (media player)
 - [fzf](https://github.com/junegunn/fzf) (fuzzy finder)
 - [chafa](https://hpjansson.org/chafa/) (terminal image preview)
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (YouTube downloader)
 
 Install dependencies:
 
 ```bash
 # Ubuntu/Debian
 sudo apt install mpv fzf chafa
+pip install -U yt-dlp
 
 # macOS
-brew install mpv fzf chafa
+brew install mpv fzf chafa yt-dlp
 
 # Arch Linux (recommended)
-yay -S gophertube
+yay -S gophertube yt-dlp
 ```
 
 ---
@@ -120,14 +125,11 @@ Create `~/.config/gophertube/gophertube.toml`:
 
 ```toml
 search_limit = 30
+quality = "1080p"           # default: 1080p (options: 1080p, 720p, 480p, 360p)
+downloads_path = "/home/$USER/Videos/GopherTube"  # where to save downloads
 ```
 
 ---
-
-## TODO
-
-- [x] Add thumbnails support
-- [ ] Add downloads support
 
 ## Star History
 
