@@ -10,4 +10,5 @@ type Video struct {
 	Thumbnail     string
 	ThumbnailPath string // local path for preview
 	Description   string
+	Published     string // relative published/upload date
 }

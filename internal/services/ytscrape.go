@@ -354,6 +354,10 @@ func parseVideoRenderer(vr interface{}) types.Video {
 			}
 		}
 	}
+
+	// Extract published/upload date as relative time
+	published := safeJQString(m, "publishedTimeText", "simpleText")
+
 	return types.Video{
 		Title:     title,
 		URL:       url,
@@ -361,6 +365,7 @@ func parseVideoRenderer(vr interface{}) types.Video {
 		Duration:  duration,
 		Views:     views,
 		Thumbnail: thumb,
+		Published: published,
 	}
 }
 
