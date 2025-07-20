@@ -53,17 +53,6 @@ func printSearchPrompt(query string) {
 	fmt.Print("\033[1;30m█\033[0m")
 }
 
-func printSearchingAnimation(query string) {
-	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-	for i := 0; i < 2; i++ {
-		for _, frame := range frames {
-			fmt.Print("\033[2K\r")
-			fmt.Printf("    \033[1;33m%s\033[0m \033[0;37mSearching for '%s'...\033[0m", frame, query)
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-}
-
 func printProgressBar(current, total int) {
 	width := 35
 	filled := (current * width) / total
@@ -76,7 +65,19 @@ func printProgressBar(current, total int) {
 		}
 	}
 	bar += "\033[0m"
-	fmt.Printf("\033[2K\r    %s %d/%d", bar, current, total)
+
+	var phase string
+	if current == 0 {
+		phase = "Searching..."
+	} else if current == 1 {
+		phase = "Parsing results..."
+	} else if current == 2 {
+		phase = "Downloading thumbnails..."
+	} else {
+		phase = fmt.Sprintf("Downloading thumbnails (%d/%d)", current-2, total-2)
+	}
+
+	fmt.Printf("\033[2K\r    %s %s", bar, phase)
 }
 
 func readQuery() (string, bool) {
@@ -180,10 +181,6 @@ func main() {
 			return
 		}
 
-		printSearchingAnimation(query)
-		fmt.Println()
-		fmt.Println()
-
 		limit := loadConfig()
 		videos, err := services.SearchYouTube(query, limit, printProgressBar)
 		fmt.Println()
@@ -221,7 +218,8 @@ func runFzf(videos []types.Video, limit int, query string) int {
 	for {
 		var input bytes.Buffer
 		for i, v := range videos {
-			thumbPath := strings.ReplaceAll(v.ThumbnailPath, "'", "'\\''")
+			thumbPath := v.ThumbnailPath
+			thumbPath = strings.ReplaceAll(thumbPath, "'", "'\\''")
 			fmt.Fprintf(&input, "%d\t%s\t%s\t%s\t%s\t%s\n", i, v.Title, thumbPath, v.Duration, v.Author, v.Views)
 		}
 		fzfArgs := []string{
@@ -231,7 +229,7 @@ func runFzf(videos []types.Video, limit int, query string) int {
 			"--expect=tab",
 			"--bind=esc:abort",
 			"--preview",
-			`thumbfile={3}; w=$((FZF_PREVIEW_COLUMNS * 9 / 10)); h=$((FZF_PREVIEW_LINES * 3 / 5)); if [ -s "$thumbfile" ]; then chafa --size=${w}x${h} "$thumbfile"; else echo No image preview (not cached); fi; echo; title=$(printf %s {2} | fold -s -w $w | sed "s/^'//;s/'$//"); title_lines=$(echo "$title" | head -n2); if [ "$(echo "$title" | wc -l)" -gt 2 ]; then title_lines="$title_lines\n..."; fi; echo -e "\033[1;36m$title_lines\033[0m"; echo -e "\033[33mDuration:\033[0m $(echo {4} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[32mAuthor:\033[0m $(echo {5} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[35mViews:\033[0m $(echo {6} | sed s/^\'// | sed s/\'$//)"`,
+			`thumbfile={3}; w=$((FZF_PREVIEW_COLUMNS * 9 / 10)); h=$((FZF_PREVIEW_LINES * 3 / 5)); if [ -s "$thumbfile" ] && [ -f "$thumbfile" ]; then chafa --size=${w}x${h} "$thumbfile" 2>/dev/null || echo "No image preview available"; else echo "No thumbnail available"; fi; echo; title=$(printf %s {2} | fold -s -w $w | sed "s/^'//;s/'$//"); title_lines=$(echo "$title" | head -n2); if [ "$(echo "$title" | wc -l)" -gt 2 ]; then title_lines="$title_lines\n..."; fi; echo -e "\033[1;36m$title_lines\033[0m"; echo -e "\033[33mDuration:\033[0m $(echo {4} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[32mAuthor:\033[0m $(echo {5} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[35mViews:\033[0m $(echo {6} | sed s/^\'// | sed s/\'$//)"`,
 		}
 		if filter != "" {
 			fzfArgs = append(fzfArgs, "--query="+filter)
