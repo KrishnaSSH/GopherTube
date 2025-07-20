@@ -250,7 +250,32 @@ func main() {
 		}
 
 		limit := loadConfig()
-		videos, err := services.SearchYouTube(query, limit, printProgressBar)
+
+		// Spinner/progress state
+		progressCurrent := 0
+		progressTotal := 1
+		progressDone := make(chan struct{})
+
+		// Start spinner goroutine
+		go func() {
+			for {
+				select {
+				case <-progressDone:
+					return
+				default:
+					printProgressBar(progressCurrent, progressTotal)
+					time.Sleep(100 * time.Millisecond)
+				}
+			}
+		}()
+
+		videos, err := services.SearchYouTube(query, limit, func(current, total int) {
+			progressCurrent = current
+			progressTotal = total
+		})
+
+		close(progressDone)
+		fmt.Print("\033[2K\r\n") // Clear progress bar/spinner line
 		fmt.Println()
 		fmt.Println()
 
@@ -330,7 +355,10 @@ func runFzf(videos []types.Video, limit int, query string) int {
 		if lines[0] == "tab" {
 			fmt.Printf("    \033[1;35mLoading more results...\033[0m\n")
 			limit += loadConfig()
-			moreVideos, err := services.SearchYouTube(query, limit, printProgressBar)
+			moreVideos, err := services.SearchYouTube(query, limit, func(current, total int) {
+				// progressCurrent = current // This line was removed
+				// progressTotal = total // This line was removed
+			})
 			if err != nil || len(moreVideos) == len(videos) {
 				continue
 			}

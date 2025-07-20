@@ -126,7 +126,7 @@ func extractVideosFromJSON(data []byte, limit int) ([]types.Video, error) {
 
 func SearchYouTube(query string, limit int, progress func(current, total int)) ([]types.Video, error) {
 	if progress != nil {
-		progress(0, 1)
+		progress(0, 2+limit)
 	}
 
 	// Single optimized request with best parameters
@@ -142,13 +142,17 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 	}
 
 	if progress != nil {
-		progress(1, 2)
+		progress(1, 2+limit)
 	}
 
 	// Extract videos with early termination
 	videos, err := extractVideosFromJSON(body, limit)
 	if err != nil {
 		return nil, err
+	}
+
+	if progress != nil {
+		progress(2, 2+limit)
 	}
 
 	// If we don't have enough videos, try one more strategy
@@ -184,7 +188,7 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 	}
 
 	if progress != nil {
-		progress(2, 2+len(videos))
+		progress(2, 2+limit)
 	}
 
 	// Load all thumbnails concurrently for faster loading
@@ -192,7 +196,6 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 	var mu sync.Mutex
 	done := 0
 
-	// Load all thumbnails concurrently
 	for i := 0; i < len(videos); i++ {
 		wg.Add(1)
 		go func(i int) {
@@ -206,7 +209,7 @@ func SearchYouTube(query string, limit int, progress func(current, total int)) (
 			mu.Lock()
 			done++
 			if progress != nil {
-				progress(2+done, 2+len(videos))
+				progress(2+done, 2+limit)
 			}
 			mu.Unlock()
 		}(i)
