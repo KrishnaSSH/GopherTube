@@ -1,4 +1,4 @@
-<div align="center">
+<div align="left">
   <img src=".assets/logo.png" alt="GopherTube Logo" width="300" />
 </div>
 
