@@ -43,6 +43,8 @@ func printBanner() {
 	fmt.Println("    \033[1;33mGopherTube\033[0m")
 	fmt.Println("    \033[0;37mversion " + version + "\033[0m")
 	fmt.Println()
+	fmt.Println("    \033[1;36mFast Youtube Terminal UI \033[0m")
+	fmt.Println("    \033[0;37mPress Ctrl+C or Esc to exit\033[0m")
 	fmt.Println()
 }
 
@@ -68,9 +70,9 @@ func printProgressBar(current, total int) {
 
 	var phase string
 	if current == 0 {
-		phase = "Searching..."
+		phase = "Searching YouTube..."
 	} else if current == 1 {
-		phase = "Parsing results..."
+		phase = "Parsing search results..."
 	} else if current == 2 {
 		phase = "Downloading thumbnails..."
 	} else {
@@ -78,6 +80,28 @@ func printProgressBar(current, total int) {
 	}
 
 	fmt.Printf("\033[2K\r    %s %s", bar, phase)
+}
+
+func printSearchStats(videos []types.Video) {
+	if len(videos) == 0 {
+		return
+	}
+
+	channels := make(map[string]int)
+
+	for _, v := range videos {
+		channels[v.Author]++
+	}
+
+	fmt.Println("    \033[1;36mSearch Statistics:\033[0m")
+	fmt.Printf("    \033[0;37m• Total videos: %d\033[0m\n", len(videos))
+	fmt.Printf("    \033[0;37m• Unique channels: %d\033[0m\n", len(channels))
+
+	if len(videos) > 0 {
+		fmt.Printf("    \033[0;37m• Sample duration: %s\033[0m\n", videos[0].Duration)
+	}
+
+	fmt.Println()
 }
 
 func readQuery() (string, bool) {
@@ -195,7 +219,7 @@ func main() {
 		}
 
 		fmt.Printf("    \033[1;32mFound %d results!\033[0m\n", len(videos))
-		fmt.Println()
+		printSearchStats(videos)
 		time.Sleep(500 * time.Millisecond)
 
 		selected := runFzf(videos, limit, query)
@@ -225,7 +249,7 @@ func runFzf(videos []types.Video, limit int, query string) int {
 		fzfArgs := []string{
 			"--with-nth=2..2",
 			"--delimiter=\t",
-			"--header=\033[1;36m↑/↓\033[0m to move, \033[1;33mtype\033[0m to search, \033[1;32mEnter\033[0m to select, \033[1;35mTab\033[0m to load more",
+			fmt.Sprintf("--header=\033[1;36m↑/↓\033[0m to move • \033[1;33mtype\033[0m to search • \033[1;32mEnter\033[0m to select • \033[1;35mTab\033[0m to load more • \033[1;37m%d results\033[0m", len(videos)),
 			"--expect=tab",
 			"--bind=esc:abort",
 			"--preview",
@@ -258,7 +282,8 @@ func runFzf(videos []types.Video, limit int, query string) int {
 				continue
 			}
 			videos = moreVideos
-			fmt.Printf("    \033[1;32mLoaded %d more results!\033[0m\n", len(videos))
+			fmt.Printf("    \033[1;32mLoaded %d total results!\033[0m\n", len(videos))
+			printSearchStats(videos)
 			continue
 		}
 		line := lines[0]
