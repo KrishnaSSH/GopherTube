@@ -38,7 +38,7 @@ GopherTube is a terminal-based YouTube client. It scrapes and parses the youtube
 </p>
 
 **Demo Video**  
-Watch the demo video [here](https://github.com/KrishnaSSH/GopherTube/raw/main/demo.mp4)
+Watch the demo video [here](https://github.com/KrishnaSSH/GopherTube/raw/refs/heads/main/.assets/demo.mp4)
 
 
 ## Features
