@@ -435,7 +435,7 @@ func gophertubeDownloadsMode() {
 		os.Stdin.Read(make([]byte, 1))
 		return
 	}
-	fzfPreview := fmt.Sprintf(`file={}; base="%s/${file%%.*}"; thumb="$base.jpg"; w=$((FZF_PREVIEW_COLUMNS * 9 / 10)); h=$((FZF_PREVIEW_LINES * 3 / 5)); if [ -f "$thumb" ]; then chafa --size=${w}x${h} "$thumb" 2>/dev/null || echo "No image preview available"; else echo "No thumbnail available"; fi`, config.DownloadsPath)
+	fzfPreview := fmt.Sprintf(`env file={} base="%s/${file%%.*}" thumb="$base.jpg" w=$((FZF_PREVIEW_COLUMNS * 9 / 10)) h=$((FZF_PREVIEW_LINES * 3 / 5)) sh -c '[ -f "$thumb" ] && chafa --size=${w}x${h} "$thumb" 2>/dev/null || echo "No image preview available" || echo "No thumbnail available"'`, config.DownloadsPath)
 	cmd := exec.Command("fzf", "--prompt=Downloads: ", "--preview", fzfPreview)
 	cmd.Stdin = strings.NewReader(strings.Join(videoFiles, "\n"))
 	out, _ := cmd.Output()
@@ -470,7 +470,7 @@ func runFzf(videos []types.Video, limit int, query string) int {
 			"--border=rounded",
 			"--margin=1,1",
 			"--preview",
-			`thumbfile={3}; w=$((FZF_PREVIEW_COLUMNS * 9 / 10)); h=$((FZF_PREVIEW_LINES * 3 / 5)); if [ -s "$thumbfile" ] && [ -f "$thumbfile" ]; then chafa --size=${w}x${h} "$thumbfile" 2>/dev/null || echo "No image preview available"; else echo "No thumbnail available"; fi; echo; echo -e "\033[33mDuration:\033[0m $(echo {4} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[36mPublished:\033[0m $(echo {8} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[32mAuthor:\033[0m $(echo {5} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[35mViews:\033[0m $(echo {6} | sed s/^\'// | sed s/\'$//)"`,
+			`env thumbfile={3} w=$((FZF_PREVIEW_COLUMNS * 9 / 10)) h=$((FZF_PREVIEW_LINES * 3 / 5)) sh -c '[ -s "$thumbfile" ] && [ -f "$thumbfile" ] && chafa --size=${w}x${h} "$thumbfile" 2>/dev/null || echo "No image preview available" || echo "No thumbnail available"'; echo; echo -e "\033[33mDuration:\033[0m $(echo {4} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[36mPublished:\033[0m $(echo {8} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[32mAuthor:\033[0m $(echo {5} | sed s/^\'// | sed s/\'$//)"; echo -e "\033[35mViews:\033[0m $(echo {6} | sed s/^\'// | sed s/\'$//)"`,
 		}
 		if filter != "" {
 			fzfArgs = append(fzfArgs, "--query="+filter)
